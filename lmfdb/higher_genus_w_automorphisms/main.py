@@ -578,14 +578,16 @@ def render_family(args):
         learnmore =[('Completeness of the data', url_for(".completeness_page")),
                 ('Source of the data', url_for(".how_computed_page")),
                 ('Labeling convention', url_for(".labels_page"))]
-        if len(Lall) == 1 or topo_length == 0:
+        if topo_length == 0:
             downloads = [('Download Magma code', url_for(".hgcwa_code_download",  label=label, download_type='magma')),
                              ('Download Gap code', url_for(".hgcwa_code_download", label=label, download_type='gap'))]
         else:
-            downloads = [('Download Magma code', url_for(".hgcwa_code_download",  label=label, download_type='magma')),
-                             ('Download Gap code', url_for(".hgcwa_code_download", label=label, download_type='gap')),
-                             ('Download Topological Equivalence Representative Magma code', url_for(".hgcwa_code_download",  label=label, download_type='topo_magma')),
-                             ('Download Topological Equivalence Representative Gap code', url_for(".hgcwa_code_download", label=label, download_type='topo_gap'))] 
+            downloads = [('Magma code', None),
+                             (u'\u2003 All vectors', url_for(".hgcwa_code_download",  label=label, download_type='magma')),
+                             (u'\u2003 Up to topological equivalence', url_for(".hgcwa_code_download", label=label, download_type='topo_magma')),
+                             ('Gap code', None),
+                             (u'\u2003 All vectors', url_for(".hgcwa_code_download", label=label, download_type='gap')),
+                             (u'\u2003 Up to topological equivalence', url_for(".hgcwa_code_download", label=label, download_type='topo_gap'))] 
 
         return render_template("hgcwa-show-family.html",
                                title=title, bread=bread, info=info,
@@ -766,10 +768,12 @@ def render_passport(args):
                              ('Download Gap code', url_for(".hgcwa_code_download", label=label, download_type='gap'))
                              ]
         else:
-            downloads = [('Download Magma code', url_for(".hgcwa_code_download",  label=label, download_type='magma')),
-                             ('Download Gap code', url_for(".hgcwa_code_download", label=label, download_type='gap')),
-                             ('Download Braid Equivalence Representative Magma code', url_for(".hgcwa_code_download", label=label, download_type='braid_magma')),
-                             ('Download Braid Equivalence Representative Gap code', url_for(".hgcwa_code_download", label=label, download_type='braid_gap'))
+            downloads = [('Magma code', None),
+                             (u'\u2003 All vectors', url_for(".hgcwa_code_download",  label=label, download_type='magma')),
+                             (u'\u2003 Up to braid equivalence', url_for(".hgcwa_code_download", label=label, download_type='braid_magma')),
+                             ('Gap code', None),
+                             (u'\u2003 All vectors', url_for(".hgcwa_code_download", label=label, download_type='gap')),
+                             (u'\u2003 Up to braid equivalence', url_for(".hgcwa_code_download", label=label, download_type='braid_gap'))
                              ]
             
         return render_template("hgcwa-show-passport.html",
