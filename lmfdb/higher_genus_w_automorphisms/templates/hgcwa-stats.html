@@ -26,6 +26,37 @@ table.ntdata td {
   </p>
 </div>
 
+<table class="ntdata">
+  <thead>
+    <tr class="space">
+      <th class="spaceleft">Quotient</th>
+      <th class="level" colspan="{{genus_detail | length}}">Genus</th>
+    </tr>
+    <tr class="space">
+      <th class="spaceleft">genus</th>
+      {% for i in range(0, genus_detail | length) %}
+      <th class="level">{{info.stats.genus.min + i}}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for i in range(0, 1 + ((info.stats.genus.min + (genus_detail | length)) / 2) | round(0, 'ceil') | int) %}
+    <tr>
+      <th class="left">{{i}}</th>
+      {% for j in range(0, genus_detail | length) %}
+      <td class="center">
+        {% if i > ((info.stats.genus.min + j) / 2) | round(0, 'ceil') | int %}
+        -
+        {% else %}
+        {{genus_detail[j].families}}
+        {% endif %}
+      </td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
 <h2> Distribution by genus </h2>
 {% for i in range(0, genus_detail | length, max_cols) %}
 <div>
@@ -58,6 +89,22 @@ table.ntdata td {
         {% for genus in genus_detail[i:i+max_cols] %}
         <td>
           {{genus.gen_vectors}}
+        </td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <th>distinct topological orbits</th>
+        {% for genus in genus_detail[i:i+max_cols] %}
+        <td>
+          {{genus.topological_orbits}}
+        </td>
+        {% endfor %}
+      </tr>
+      <tr>
+        <th>distinct braid orbits</th>
+        {% for genus in genus_detail[i:i+max_cols] %}
+        <td>
+          bar
         </td>
         {% endfor %}
       </tr>
