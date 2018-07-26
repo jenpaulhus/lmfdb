@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 # This Blueprint is about Higher Genus Curves
 # Authors: Jen Paulhus, Lex Martin, David Neill Asanza
 # (initial code copied from John Jones Local Fields)
+from pymongo.mongo_client import MongoClient
 
 import StringIO
 import re
@@ -18,6 +20,7 @@ from sage.all import Permutation
 from lmfdb.higher_genus_w_automorphisms import higher_genus_w_automorphisms_page
 from lmfdb.sato_tate_groups.main import sg_pretty
 from lmfdb.higher_genus_w_automorphisms.hgcwa_stats import get_stats_object, db_hgcwa_stats
+
 
 # Determining what kind of label
 family_label_regex = re.compile(r'(\d+)\.(\d+-\d+)\.(\d+\.\d+-[^\.]*$)')
@@ -38,13 +41,7 @@ def split_family_label(lab):
 def split_passport_label(lab):
     return passport_label_regex.match(lab).groups()
 
-
 credit ='Jen Paulhus, using group and signature data originally computed by Thomas Breuer'
-
-
-#Create total label from label and cc
-def create_total_label(label, pp_label, gen_vect_label):
-    return label + "." + pp_label + "." + gen_vect_label
 
 
 def get_bread(breads=[]):
@@ -62,11 +59,14 @@ def tfTOyn(bool):
 
 def sign_display(L):
     sizeL = len(L)
-    signL = "[ " + str(L[0]) + "; "
-    for i in range(1,sizeL-1):
-        signL= signL + str(L[i]) + ", "
+    if sizeL == 1:
+        signL = "[ " + str(L[0]) + "; -]"
+    else:    
+        signL = "[ " + str(L[0]) + "; "
+        for i in range(1,sizeL-1):
+            signL= signL + str(L[i]) + ", "
 
-    signL=signL + str(L[sizeL-1]) + " ]"
+        signL=signL + str(L[sizeL-1]) + " ]"
     return signL
 
 def cc_display(L):
@@ -123,6 +123,7 @@ def decjac_format(decjac_list):
     ccClasses = cc_display ([ints[2] for ints in decjac_list])
     return latex, ccClasses
 
+
 @higher_genus_w_automorphisms_page.route("/")
 def index():
     bread = get_bread()
@@ -155,7 +156,7 @@ def statistics():
     info = {
         'stats': get_stats_object().stats(),
     }
-    title = 'Families of Higher Genus Curves with Automorphisms: Statistics'
+    title = 'Families of Higher Genus Curves with Automorphisms: statistics'
     bread = get_bread([('Statistics', ' ')])
     return render_template("hgcwa-stats.html", info=info, credit=credit, title=title, bread=bread)
 
@@ -183,9 +184,10 @@ def groups_per_genus(genus):
         'iso_classes' : iso_classes
     }
 
-    title = 'Families of Higher Genus Curves with Automorphisms: Genus ' + genus + ' Group Statistics'
+    title = 'Families of Higher Genus Curves with Automorphisms: genus ' + genus + ' group statistics'
     bread = get_bread([('Statistics', url_for('.statistics')), ('Groups per Genus', url_for('.statistics')), (str(genus), ' ')])
     return render_template("hgcwa-stats-groups-per-genus.html", info=info, credit=credit, title=title, bread=bread)
+
 
 @higher_genus_w_automorphisms_page.route("/<label>")
 def by_label(label):
@@ -195,7 +197,7 @@ def by_label(label):
     elif label_is_one_family(label):
         return render_family({'label': label})
     else:
-        flash_error( "No family with label %s was found in the database.", label)
+        flash_error("No family with label %s was found in the database.", label)
         return redirect(url_for(".index"))
 
 
@@ -388,7 +390,7 @@ def add_group_order_range(mongo_query, expr, db):
 def higher_genus_w_automorphisms_search(**args):
     info = to_dict(args)
     bread = get_bread([("Search Results",'')])
-    C = base.getDBConnection()
+    C =  base.getDBConnection()
     query = {}
     if 'jump_to' in info:
         labs = info['jump_to']
@@ -439,9 +441,8 @@ def higher_genus_w_automorphisms_search(**args):
         err, result = add_group_order_range(query, info['groupsize'], C)
         if err != None:
             flash_error('Parse error on group order field. <font face="Courier New"><br />Given: ' + err + '<br />-------' + result + '</font>')
-    res = C.curve_automorphisms.passports.find(query).sort([(
-         'genus', pymongo.ASCENDING), ('dim', pymongo.ASCENDING),
-        ('cc.0',pymongo.ASCENDING)])
+    res = C.curve_automorphisms.passports.find(query).sort([
+        ('genus', ASC), ('g0', ASC), ('dim', ASC), ('group_order', ASC), ('cc.0', ASC)])
 
     nres = res.count()
     res = res.skip(start).limit(count)
@@ -478,17 +479,16 @@ def higher_genus_w_automorphisms_search(**args):
         else:
             info['report'] = 'displaying all %s matches' % nres
 
-    return render_template("hgcwa-search.html", info=info, title="Families of Higher Genus Curves with Automorphisms Search Results", credit=credit, bread=bread)
-
+    return render_template("hgcwa-search.html", info=info, title="Families of Higher Genus Curves with Automorphisms Search Result", credit=credit, bread=bread)
 
 
 def render_family(args):
     info = {}
     if 'label' in args:
         label = clean_input(args['label'])
-        C = base.getDBConnection()
-        dataz = C.curve_automorphisms.passports.find({'label': label}).sort('cc.0', pymongo.ASCENDING)
-        
+        C = MongoClient(port=int(27017))
+        dataz = C.curve_automorphisms.passports.find({'label': label})
+ 
         if dataz.count() is 0:
             flash_error( "No family with label %s was found in the database.", label)
             return redirect(url_for(".index"))
@@ -507,7 +507,7 @@ def render_family(args):
             spname=False
         else:
             spname=True
-        title = 'Family of Genus ' + str(g) + ' Curves with Automorphism Group $' + pretty_group +'$'
+        title = 'Family of genus ' + str(g) + ' curves with automorphism group $' + pretty_group +'$'
         smallgroup="[" + str(gn) + "," +str(gt) +"]"
 
         prop2 = [
@@ -529,40 +529,18 @@ def render_family(args):
 
         Lcc=[]
         Lall=[]
-        Ltopo_rep=[] #List of topological representatives
-        Lelements=[] #List of lists of equivalence classes    
+        i=1
         for dat in dataz:
             if ast.literal_eval(dat['con']) not in Lcc:
                 urlstrng=dat['passport_label']
                 Lcc.append(ast.literal_eval(dat['con']))
                 Lall.append([cc_display(ast.literal_eval(dat['con'])),dat['passport_label'],
                              urlstrng])
-                
-            #Topological equivalence
-            if 'topological' in dat:
-                if dat['topological'] == dat['cc']:
-                    x1=[] #A list of permutations of generating vectors of topo_rep
-                    for perm in dat['gen_vectors']:
-                        x1.append(sep.join(split_perm(Permutation(perm).cycle_string())))
-                    Ltopo_rep.append([dat['passport_label'], dat['total_label'], x1])
+                i=i+1
 
-                    topo_class = C.curve_automorphisms.passports.find({'label': dat['label'], 'topological': dat['cc']}).sort('cc.0', pymongo.ASCENDING)
-                    elements=[] #An equivalence class
-                    for element in topo_class:
-                        elements.append((element['passport_label'], element['total_label']))
-                    Lelements.append(elements)    
-
-        Ltopo_class = zip(Ltopo_rep, Lelements)
-        topo_length = len(Ltopo_rep)
-        #Add topological equivalence to info
-        info.update({'topological_rep': Ltopo_rep})
-        info.update({'topological_class': Ltopo_class})
-        info.update({'topological_num': topo_length})
-        
         info.update({'passport': Lall})
-        info.update({'passport_num': len(Lall)})
 
-        
+
         g2List = ['[2,1]','[4,2]','[8,3]','[10,2]','[12,4]','[24,8]','[48,29]']
         if g  == 2 and data['group'] in g2List:
             g2url = "/Genus2Curve/Q/?geom_aut_grp_id=" + data['group']
@@ -579,6 +557,7 @@ def render_family(args):
         learnmore =[('Completeness of the data', url_for(".completeness_page")),
                 ('Source of the data', url_for(".how_computed_page")),
                 ('Labeling convention', url_for(".labels_page"))]
+<<<<<<< HEAD
         if topo_length == 0:
             downloads = [('Download Magma code', url_for(".hgcwa_code_download",  label=label, download_type='magma')),
                              ('Download Gap code', url_for(".hgcwa_code_download", label=label, download_type='gap'))]
@@ -589,6 +568,11 @@ def render_family(args):
                              ('Gap code', None),
                              (u'\u2003 All vectors', url_for(".hgcwa_code_download", label=label, download_type='gap')),
                              (u'\u2003 Up to topological equivalence', url_for(".hgcwa_code_download", label=label, download_type='topo_gap'))] 
+=======
+
+        downloads = [('Download Magma code', url_for(".hgcwa_code_download",  label=label, download_type='magma')),
+                     ('Download Gap code', url_for(".hgcwa_code_download", label=label, download_type='gap'))]
+>>>>>>> 706fb7e5c3d680e359ae09890d055587e96c36b2
 
         return render_template("hgcwa-show-family.html",
                                title=title, bread=bread, info=info,
@@ -600,13 +584,14 @@ def render_passport(args):
     info = {}
     if 'passport_label' in args:
         label =clean_input(args['passport_label'])
-        C = base.getDBConnection()
-        dataz = C.curve_automorphisms.passports.find({'passport_label': label}).sort('cc.1', pymongo.ASCENDING)
-        
+
+        C =  MongoClient(port=int(27017))
+        dataz = C.curve_automorphisms.passports.find({'passport_label': label}).sort('cc.1', ASC)
         if dataz.count() is 0:
             bread = get_bread([("Search Error", url_for('.index'))])
             flash_error( "No refined passport with label %s was found in the database.", label)
             return redirect(url_for(".index"))
+        
         data=dataz[0]
         g = data['genus']
         GG = ast.literal_eval(data['group'])
@@ -619,21 +604,18 @@ def render_passport(args):
         if gp_string == pretty_group:
             spname=False
         else:
-            spname=True
-
+            spname=True        
+        
         numb = dataz.count()
 
         try:
-            numgenvecs = int(request.args['numgenvecs'])
-            numbraidreps = int(request.args['numbraidreps'])
+            numgenvecs = request.args['numgenvecs']
+            numgenvecs = int(numgenvecs)
         except:
             numgenvecs = 20
-            numbraidreps = 20
-            
         info['numgenvecs']=numgenvecs
-        info['numbraidreps']=numbraidreps
 
-        title = 'One Refined Passport of Genus ' + str(g) + ' with Automorphism Group $' + pretty_group +'$'
+        title = 'One refined passport of genus ' + str(g) + ' with automorphism group $' + pretty_group +'$'
         smallgroup="[" + str(gn) + "," +str(gt) +"]"
 
         prop2 = [
@@ -643,13 +625,16 @@ def render_passport(args):
             ('Generating Vectors','\(%d\)' % numb)
         ]
         info.update({'genus': data['genus'],
-                    'cc': cc_display(data['con']),
                     'sign': sign_display(ast.literal_eval(data['signature'])),
                      'group': pretty_group,
                      'gpid': smallgroup,
                      'numb':numb,
-                     'disp_numb':min(numb,numgenvecs)
+                     'disp_numb':min(numb,numgenvecs),
+                     'g0': data['g0']
                    })
+        
+        if data['con'] != '[]':
+            info.update({'passport_cc': cc_display(ast.literal_eval(data['con']))})
 
         if spname:
             info.update({'specialname': True})
@@ -657,7 +642,6 @@ def render_passport(args):
         Ldata=[]
         HypColumn = False
         Lfriends=[]
-        Lbraid=[]
         for i in range (0, min(numgenvecs,numb)):
             dat= dataz[i]
             x1=dat['total_label']
@@ -675,30 +659,21 @@ def render_passport(args):
                 x3=' '
 
             x4=[]
-            for perm in dat['gen_vectors']:
-                cycperm=Permutation(perm).cycle_string()
-
-                x4.append(sep.join(split_perm(cycperm)))
+            if dat['g0'] == 0:
+                for perm in dat['gen_vectors']:
+                    display_perm = sep.join(split_perm(Permutation(perm).cycle_string()))
+                    x4.append(display_perm)
+            elif dat['g0'] > 0:
+                for perm in dat['gen_vectors']:
+                    display_perm = sep.join(split_perm(Permutation(perm).cycle_string()))
+                    if display_perm == '()':
+                        x4.append('Id(G)')
+                    else:
+                        x4.append(display_perm)
 
             Ldata.append([x1,x2,x3,x4])
 
         info.update({'genvects': Ldata, 'HypColumn' : HypColumn})
-
-        info.update({'passport_cc': cc_display(ast.literal_eval(data['con']))})
-        
-        #Generate braid representatives
-        if 'braid' in dataz[0]:
-            braid_data = list(filter(lambda entry: entry['braid'] == entry['cc'], list(dataz)))
-            for dat in braid_data:
-                x5=[]
-                for perm in dat['gen_vectors']:
-                    x5.append(sep.join(split_perm(Permutation(perm).cycle_string())))
-                Lbraid.append([dat['total_label'], x5])
-
-        braid_length = len(Lbraid)
-        print braid_length
-        #Add braid equivalence into info
-        info.update({'braid': Lbraid, 'braid_numb': braid_length, 'braid_disp_numb': min(braid_length, numbraidreps)})
 
         if 'eqn' in data:
             info.update({'eqns': data['eqn']})
@@ -762,6 +737,7 @@ def render_passport(args):
         bread = get_bread([(br_g, './?genus='+br_g),('$'+pretty_group+'$','./?genus='+br_g + '&group='+bread_gp), (bread_sign, urlstrng),(data['cc'][0],' ')])
 
         learnmore =[('Completeness of the data', url_for(".completeness_page")),
+<<<<<<< HEAD
                         ('Source of the data', url_for(".how_computed_page")),
                         ('Labeling convention', url_for(".labels_page"))]
         if numb == 1 or braid_length == 0:
@@ -777,6 +753,14 @@ def render_passport(args):
                              (u'\u2003 Up to braid equivalence', url_for(".hgcwa_code_download", label=label, download_type='braid_gap'))
                              ]
             
+=======
+                ('Source of the data', url_for(".how_computed_page")),
+                ('Labeling convention', url_for(".labels_page"))]
+
+        downloads = [('Download Magma code', url_for(".hgcwa_code_download",  label=label, download_type='magma')),
+                     ('Download Gap code', url_for(".hgcwa_code_download", label=label, download_type='gap'))]
+
+>>>>>>> 706fb7e5c3d680e359ae09890d055587e96c36b2
         return render_template("hgcwa-show-passport.html",
                                title=title, bread=bread, info=info,
                                properties2=prop2, friends=friends,
@@ -786,6 +770,7 @@ def render_passport(args):
 
 def search_input_error(info, bread):
     return render_template("hgcwa-search.html", info=info, title='Families of Higher Genus Curve Search Input Error', bread=bread, credit=credit)
+
 
 
 @higher_genus_w_automorphisms_page.route("/Completeness")
@@ -800,7 +785,7 @@ def completeness_page():
 
 @higher_genus_w_automorphisms_page.route("/Labels")
 def labels_page():
-    t = 'Label Scheme for the Data'
+    t = 'Label scheme for the data'
     bread = get_bread([("Labels", '')])
     learnmore = [('Completeness of the data', url_for(".completeness_page")),
                 ('Source of the data', url_for(".how_computed_page"))]
@@ -809,7 +794,7 @@ def labels_page():
 
 @higher_genus_w_automorphisms_page.route("/Source")
 def how_computed_page():
-    t = 'Source of the Automorphisms of Curve Data'
+    t = 'Source of the automorphisms of curve data'
     bread = get_bread([("Source", '')])
     learnmore = [('Completeness of the data', url_for(".completeness_page")),
                 ('Labeling convention', url_for(".labels_page"))]
@@ -817,7 +802,8 @@ def how_computed_page():
                            title=t, bread=bread, learnmore=learnmore, credit=credit)
 
 
-#Download magma and gap code
+
+
 _curdir = os.path.dirname(os.path.abspath(__file__))
 code_list =  yaml.load(open(os.path.join(_curdir, "code.yaml")))
 
@@ -829,27 +815,15 @@ depends_on_action = ['gen_vectors']
 
 Fullname = {'magma': 'Magma', 'gap': 'GAP'}
 Comment = {'magma': '//', 'gap': '#'}
-FileSuffix= {'magma': '.m', 'gap': '.g'}
-
+FileSuffix= {'magma': '.m', 'gap': '.g'} 
 
 @higher_genus_w_automorphisms_page.route("/<label>/download/<download_type>")
 def hgcwa_code_download(**args):
     import time
     label = args['label']
-    C = base.getDBConnection()
-    #Choose lang
-    if args['download_type'] == 'topo_magma' or args['download_type'] == 'braid_magma':
-        lang = 'magma'
-    elif args['download_type'] == 'topo_gap' or args['download_type'] == 'braid_gap':
-        lang = 'gap'
-    else:
-        lang = args['download_type']
+    lang = args['download_type']
     s = Comment[lang]
-    #Choose filename
-    if lang == args['download_type']:
-        filename= 'HigherGenusData_' + str(label) + FileSuffix[lang]
-    else:
-        filename= 'HigherGenusDataRep_' + str(label) + FileSuffix[lang]
+    filename= 'HigherGenusData' + str(label) + FileSuffix[lang] 
     code = s + " " + Fullname[lang]+  " code for the lmfdb family of higher genus curves " + str(label) + '\n'  
     code += s + " The results are stored in a list of records called 'data'\n\n" 
     code +=code_list['top_matter'][lang] + '\n' +'\n'
@@ -857,19 +831,11 @@ def hgcwa_code_download(**args):
 
 
     if label_is_one_passport(label):
-        search_data = C.curve_automorphisms.passports.find({"passport_label" : label}).sort('cc.1', pymongo.ASCENDING)
-        if lang == args['download_type']:
-            data = search_data
-        else:
-            data = list(filter(lambda entry : entry['braid'] == entry['cc'], list(search_data)))
-            
+        data = C.curve_automorphisms.passports.find({"passport_label" : label})
+
     elif label_is_one_family(label):
-        search_data = C.curve_automorphisms.passports.find({"label" : label}).sort('cc.0', pymongo.ASCENDING)
-        if lang == args['download_type']:
-            data = search_data
-        else:
-            data = list(filter(lambda entry : entry['topological'] == entry['cc'], list(search_data)))
-            
+        data = C.curve_automorphisms.passports.find({"label" : label})
+    
     code += s + code_list['gp_comment'][lang] +'\n'
     code += code_list['group'][lang] + str(data[0]['group'])+ ';\n'
 
@@ -896,41 +862,26 @@ def hgcwa_code_download(**args):
     stdfmt += code_list['gen_gp'][lang]+ '\n'
     stdfmt += code_list['passport_label'][lang] + '{cc[0]}' + ';\n'
     stdfmt += code_list['gen_vect_label'][lang] + '{cc[1]}' + ';\n'
-    
-    # Add braid and topological tag for each entry
-    if lang == args['download_type']:
-        stdfmt += code_list['braid_class'][lang] + '{braid[1]}' + ';\n'
-        stdfmt += code_list['topological_class'][lang] + '{topological}' + ';\n'
-        
+
     # extended formatting template for when signH is present
     signHfmt = stdfmt
     signHfmt += code_list['full_auto'][lang] + '{full_auto}' + ';\n'
     signHfmt += code_list['full_sign'][lang] + '{signH}' + ';\n'
+    signHfmt += code_list['add_to_total_full'][lang] + '\n'
 
     # additional info for hyperelliptic cases
     hypfmt = code_list['hyp'][lang] + code_list['tr'][lang] + ';\n'
     hypfmt += code_list['hyp_inv'][lang] + '{hyp_involution}' + code_list['hyp_inv_last'][lang]
     hypfmt += code_list['cyc'][lang] + code_list['fal'][lang] + ';\n'
-    
+    hypfmt += code_list['add_to_total_hyp'][lang] + '\n'
     cyctrigfmt = code_list['hyp'][lang] + code_list['fal'][lang] + ';\n'
     cyctrigfmt += code_list['cyc'][lang] + code_list['tr'][lang] + ';\n'
     cyctrigfmt += code_list['cyc_auto'][lang] + '{cinv}' + code_list['hyp_inv_last'][lang]
-   
+    cyctrigfmt += code_list['add_to_total_cyc_trig'][lang] + '\n'
     nhypcycstr = code_list['hyp'][lang] + code_list['fal'][lang] + ';\n'
     nhypcycstr += code_list['cyc'][lang] + code_list['fal'][lang] + ';\n'
-   
-    #Action for all vectors and action for just representatives
-    if lang == args['download_type']:
-        signHfmt += code_list['add_to_total_full_rep'][lang] + '\n'
-        hypfmt += code_list['add_to_total_hyp_rep'][lang] + '\n'
-        cyctrigfmt += code_list['add_to_total_cyc_trig_rep'][lang] + '\n'
-        nhypcycstr += code_list['add_to_total_basic_rep'][lang] + '\n'
-    else:
-        signHfmt += code_list['add_to_total_full'][lang] + '\n'
-        hypfmt += code_list['add_to_total_hyp'][lang] + '\n'
-        cyctrigfmt += code_list['add_to_total_cyc_trig'][lang] + '\n'
-        nhypcycstr += code_list['add_to_total_basic'][lang] + '\n'
-    
+    nhypcycstr += code_list['add_to_total_basic'][lang] + '\n'
+
     start = time.time()
     lines = [(startstr + (signHfmt if 'signH' in dataz else stdfmt).format(**dataz) + ((hypfmt.format(**dataz) if dataz['hyperelliptic'] else cyctrigfmt.format(**dataz) if dataz['cyclic_trigonal'] else nhypcycstr) if 'hyperelliptic' in dataz else '')) for dataz in data]
     code += '\n'.join(lines)
@@ -941,12 +892,14 @@ def hgcwa_code_download(**args):
     return send_file(strIO, attachment_filename=filename, as_attachment=True, add_etags=False)
 
 
+
+
 #JEN TEST FUNCTION
 @higher_genus_w_automorphisms_page.route("/download/<download_type>")
 #def hgcwa_code_download_search(**args):
 def hgcwa_code_download_search(res,download_type):
     import time
-    label = args['label']
+#    label = args['label']
     C = base.getDBConnection()
     lang = download_type
     s = Comment[lang]
@@ -1022,18 +975,3 @@ def hgcwa_code_download_search(res,download_type):
     strIO.write(code)
     strIO.seek(0)
     return send_file(strIO, attachment_filename=filename, as_attachment=True, add_etags=False)
-
-'''
-            #Topological equivalence
-            if dat['topological'] == dat['cc']:
-                x1=[] #A list of permutations of generating vectors of topo_rep
-                for perm in dat['gen_vectors']:
-                    x1.append(sep.join(split_perm(Permutation(perm).cycle_string())))
-                Ltopo_rep.append([dat['passport_label'], dat['total_label'], x1])
-
-                topo_class = C.curve_automorphisms.passports.find({'label': dat['label'], 'topological': dat['cc']})
-                elements=[] #An equivalence class
-                for element in topo_class:
-                    elements.append((element['passport_label'], element['total_label']))
-                Lelements.append(elements)
-'''
