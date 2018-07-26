@@ -407,6 +407,7 @@ def higher_genus_w_automorphisms_search(**args):
     try:
         parse_gap_id(info,query,'group','Group')
         parse_ints(info,query,'genus',name='Genus')
+        parse_ints(info,query,'g0',name='Quotient genus')
         parse_bracketed_posints(info,query,'signature',split=False,name='Signature',keepbrackets=True)
         if query.get('signature'):
             query['signature'] = info['signature'] = str(sort_sign(ast.literal_eval(query['signature']))).replace(' ','')
