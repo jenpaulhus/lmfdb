@@ -2,6 +2,7 @@
 # This Blueprint is about Higher Genus Curves
 # Authors: Jen Paulhus, Lex Martin, David Neill Asanza
 # (initial code copied from John Jones Local Fields)
+from pymongo.mongo_client import MongoClient
 
 import StringIO
 import re
@@ -40,7 +41,6 @@ def split_family_label(lab):
 def split_passport_label(lab):
     return passport_label_regex.match(lab).groups()
 
-
 credit ='Jen Paulhus, using group and signature data originally computed by Thomas Breuer'
 
 
@@ -59,11 +59,14 @@ def tfTOyn(bool):
 
 def sign_display(L):
     sizeL = len(L)
-    signL = "[ " + str(L[0]) + "; "
-    for i in range(1,sizeL-1):
-        signL= signL + str(L[i]) + ", "
+    if sizeL == 1:
+        signL = "[ " + str(L[0]) + "; -]"
+    else:    
+        signL = "[ " + str(L[0]) + "; "
+        for i in range(1,sizeL-1):
+            signL= signL + str(L[i]) + ", "
 
-    signL=signL + str(L[sizeL-1]) + " ]"
+        signL=signL + str(L[sizeL-1]) + " ]"
     return signL
 
 def cc_display(L):
@@ -120,6 +123,7 @@ def decjac_format(decjac_list):
     ccClasses = cc_display ([ints[2] for ints in decjac_list])
     return latex, ccClasses
 
+
 @higher_genus_w_automorphisms_page.route("/")
 def index():
     bread = get_bread()
@@ -152,7 +156,7 @@ def statistics():
     info = {
         'stats': get_stats_object().stats(),
     }
-    title = 'Families of Higher Genus Curves with Automorphisms: Statistics'
+    title = 'Families of Higher Genus Curves with Automorphisms: statistics'
     bread = get_bread([('Statistics', ' ')])
     return render_template("hgcwa-stats.html", info=info, credit=credit, title=title, bread=bread)
 
@@ -180,9 +184,10 @@ def groups_per_genus(genus):
         'iso_classes' : iso_classes
     }
 
-    title = 'Families of Higher Genus Curves with Automorphisms: Genus ' + genus + ' Group Statistics'
+    title = 'Families of Higher Genus Curves with Automorphisms: genus ' + genus + ' group statistics'
     bread = get_bread([('Statistics', url_for('.statistics')), ('Groups per Genus', url_for('.statistics')), (str(genus), ' ')])
     return render_template("hgcwa-stats-groups-per-genus.html", info=info, credit=credit, title=title, bread=bread)
+
 
 @higher_genus_w_automorphisms_page.route("/<label>")
 def by_label(label):
@@ -192,7 +197,7 @@ def by_label(label):
     elif label_is_one_family(label):
         return render_family({'label': label})
     else:
-        flash_error( "No family with label %s was found in the database.", label)
+        flash_error("No family with label %s was found in the database.", label)
         return redirect(url_for(".index"))
 
 
@@ -385,7 +390,7 @@ def add_group_order_range(mongo_query, expr, db):
 def higher_genus_w_automorphisms_search(**args):
     info = to_dict(args)
     bread = get_bread([("Search Results",'')])
-    C = base.getDBConnection()
+    C =  base.getDBConnection()
     query = {}
     if 'jump_to' in info:
         labs = info['jump_to']
@@ -435,9 +440,8 @@ def higher_genus_w_automorphisms_search(**args):
         err, result = add_group_order_range(query, info['groupsize'], C)
         if err != None:
             flash_error('Parse error on group order field. <font face="Courier New"><br />Given: ' + err + '<br />-------' + result + '</font>')
-    res = C.curve_automorphisms.passports.find(query).sort([(
-         'genus', pymongo.ASCENDING), ('dim', pymongo.ASCENDING),
-        ('cc'[0],pymongo.ASCENDING)])
+    res = C.curve_automorphisms.passports.find(query).sort([
+        ('genus', ASC), ('g0', ASC), ('dim', ASC), ('group_order', ASC), ('cc.0', ASC)])
 
     nres = res.count()
     res = res.skip(start).limit(count)
@@ -474,20 +478,22 @@ def higher_genus_w_automorphisms_search(**args):
         else:
             info['report'] = 'displaying all %s matches' % nres
 
-    return render_template("hgcwa-search.html", info=info, title="Families of Higher Genus Curves with Automorphisms Search Results", credit=credit, bread=bread)
-
+    return render_template("hgcwa-search.html", info=info, title="Families of Higher Genus Curves with Automorphisms Search Result", credit=credit, bread=bread)
 
 
 def render_family(args):
     info = {}
     if 'label' in args:
         label = clean_input(args['label'])
-        C = base.getDBConnection()
+        C = MongoClient(port=int(27017))
         dataz = C.curve_automorphisms.passports.find({'label': label})
+ 
         if dataz.count() is 0:
             flash_error( "No family with label %s was found in the database.", label)
             return redirect(url_for(".index"))
+
         data=dataz[0]
+
         g = data['genus']
         GG = ast.literal_eval(data['group'])
         gn = GG[0]
@@ -500,7 +506,7 @@ def render_family(args):
             spname=False
         else:
             spname=True
-        title = 'Family of Genus ' + str(g) + ' Curves with Automorphism Group $' + pretty_group +'$'
+        title = 'Family of genus ' + str(g) + ' curves with automorphism group $' + pretty_group +'$'
         smallgroup="[" + str(gn) + "," +str(gt) +"]"
 
         prop2 = [
@@ -541,7 +547,6 @@ def render_family(args):
         else:
             friends = [ ]
 
-
         br_g, br_gp, br_sign = split_family_label(label)
 
         bread_sign = label_to_breadcrumbs(br_sign)
@@ -566,13 +571,13 @@ def render_passport(args):
     if 'passport_label' in args:
         label =clean_input(args['passport_label'])
 
-        C = base.getDBConnection()
-
-        dataz = C.curve_automorphisms.passports.find({'passport_label': label})
+        C =  MongoClient(port=int(27017))
+        dataz = C.curve_automorphisms.passports.find({'passport_label': label}).sort('cc.1', ASC)
         if dataz.count() is 0:
             bread = get_bread([("Search Error", url_for('.index'))])
             flash_error( "No refined passport with label %s was found in the database.", label)
             return redirect(url_for(".index"))
+        
         data=dataz[0]
         g = data['genus']
         GG = ast.literal_eval(data['group'])
@@ -585,8 +590,8 @@ def render_passport(args):
         if gp_string == pretty_group:
             spname=False
         else:
-            spname=True
-
+            spname=True        
+        
         numb = dataz.count()
 
         try:
@@ -596,7 +601,7 @@ def render_passport(args):
             numgenvecs = 20
         info['numgenvecs']=numgenvecs
 
-        title = 'One Refined Passport of Genus ' + str(g) + ' with Automorphism Group $' + pretty_group +'$'
+        title = 'One refined passport of genus ' + str(g) + ' with automorphism group $' + pretty_group +'$'
         smallgroup="[" + str(gn) + "," +str(gt) +"]"
 
         prop2 = [
@@ -606,13 +611,16 @@ def render_passport(args):
             ('Generating Vectors','\(%d\)' % numb)
         ]
         info.update({'genus': data['genus'],
-                    'cc': cc_display(data['con']),
                     'sign': sign_display(ast.literal_eval(data['signature'])),
                      'group': pretty_group,
                      'gpid': smallgroup,
                      'numb':numb,
-                     'disp_numb':min(numb,numgenvecs)
+                     'disp_numb':min(numb,numgenvecs),
+                     'g0': data['g0']
                    })
+        
+        if data['con'] != '[]':
+            info.update({'passport_cc': cc_display(ast.literal_eval(data['con']))})
 
         if spname:
             info.update({'specialname': True})
@@ -637,18 +645,21 @@ def render_passport(args):
                 x3=' '
 
             x4=[]
-            for perm in dat['gen_vectors']:
-                cycperm=Permutation(perm).cycle_string()
-
-                x4.append(sep.join(split_perm(cycperm)))
+            if dat['g0'] == 0:
+                for perm in dat['gen_vectors']:
+                    display_perm = sep.join(split_perm(Permutation(perm).cycle_string()))
+                    x4.append(display_perm)
+            elif dat['g0'] > 0:
+                for perm in dat['gen_vectors']:
+                    display_perm = sep.join(split_perm(Permutation(perm).cycle_string()))
+                    if display_perm == '()':
+                        x4.append('Id(G)')
+                    else:
+                        x4.append(display_perm)
 
             Ldata.append([x1,x2,x3,x4])
 
-
-
         info.update({'genvects': Ldata, 'HypColumn' : HypColumn})
-
-        info.update({'passport_cc': cc_display(ast.literal_eval(data['con']))})
 
         if 'eqn' in data:
             info.update({'eqns': data['eqn']})
@@ -742,7 +753,7 @@ def completeness_page():
 
 @higher_genus_w_automorphisms_page.route("/Labels")
 def labels_page():
-    t = 'Label Scheme for the Data'
+    t = 'Label scheme for the data'
     bread = get_bread([("Labels", '')])
     learnmore = [('Completeness of the data', url_for(".completeness_page")),
                 ('Source of the data', url_for(".how_computed_page"))]
@@ -751,7 +762,7 @@ def labels_page():
 
 @higher_genus_w_automorphisms_page.route("/Source")
 def how_computed_page():
-    t = 'Source of the Automorphisms of Curve Data'
+    t = 'Source of the automorphisms of curve data'
     bread = get_bread([("Source", '')])
     learnmore = [('Completeness of the data', url_for(".completeness_page")),
                 ('Labeling convention', url_for(".labels_page"))]
@@ -778,7 +789,6 @@ FileSuffix= {'magma': '.m', 'gap': '.g'}
 def hgcwa_code_download(**args):
     import time
     label = args['label']
-    C = base.getDBConnection()
     lang = args['download_type']
     s = Comment[lang]
     filename= 'HigherGenusData' + str(label) + FileSuffix[lang] 
@@ -933,7 +943,3 @@ def hgcwa_code_download_search(res,download_type):
     strIO.write(code)
     strIO.seek(0)
     return send_file(strIO, attachment_filename=filename, as_attachment=True, add_etags=False)
-
-
-
-
