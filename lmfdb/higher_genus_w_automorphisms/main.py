@@ -486,7 +486,7 @@ def render_family(args):
     info = {}
     if 'label' in args:
         label = clean_input(args['label'])
-        C = MongoClient(port=int(27017))
+        C = base.getDBConnection()
         dataz = C.curve_automorphisms.passports.find({'label': label})
  
         if dataz.count() is 0:
@@ -557,22 +557,9 @@ def render_family(args):
         learnmore =[('Completeness of the data', url_for(".completeness_page")),
                 ('Source of the data', url_for(".how_computed_page")),
                 ('Labeling convention', url_for(".labels_page"))]
-<<<<<<< HEAD
-        if topo_length == 0:
-            downloads = [('Download Magma code', url_for(".hgcwa_code_download",  label=label, download_type='magma')),
-                             ('Download Gap code', url_for(".hgcwa_code_download", label=label, download_type='gap'))]
-        else:
-            downloads = [('Magma code', None),
-                             (u'\u2003 All vectors', url_for(".hgcwa_code_download",  label=label, download_type='magma')),
-                             (u'\u2003 Up to topological equivalence', url_for(".hgcwa_code_download", label=label, download_type='topo_magma')),
-                             ('Gap code', None),
-                             (u'\u2003 All vectors', url_for(".hgcwa_code_download", label=label, download_type='gap')),
-                             (u'\u2003 Up to topological equivalence', url_for(".hgcwa_code_download", label=label, download_type='topo_gap'))] 
-=======
 
         downloads = [('Download Magma code', url_for(".hgcwa_code_download",  label=label, download_type='magma')),
                      ('Download Gap code', url_for(".hgcwa_code_download", label=label, download_type='gap'))]
->>>>>>> 706fb7e5c3d680e359ae09890d055587e96c36b2
 
         return render_template("hgcwa-show-family.html",
                                title=title, bread=bread, info=info,
@@ -585,7 +572,7 @@ def render_passport(args):
     if 'passport_label' in args:
         label =clean_input(args['passport_label'])
 
-        C =  MongoClient(port=int(27017))
+        C = base.getDBConnection()
         dataz = C.curve_automorphisms.passports.find({'passport_label': label}).sort('cc.1', ASC)
         if dataz.count() is 0:
             bread = get_bread([("Search Error", url_for('.index'))])
@@ -737,30 +724,12 @@ def render_passport(args):
         bread = get_bread([(br_g, './?genus='+br_g),('$'+pretty_group+'$','./?genus='+br_g + '&group='+bread_gp), (bread_sign, urlstrng),(data['cc'][0],' ')])
 
         learnmore =[('Completeness of the data', url_for(".completeness_page")),
-<<<<<<< HEAD
-                        ('Source of the data', url_for(".how_computed_page")),
-                        ('Labeling convention', url_for(".labels_page"))]
-        if numb == 1 or braid_length == 0:
-            downloads = [('Download Magma code', url_for(".hgcwa_code_download",  label=label, download_type='magma')),
-                             ('Download Gap code', url_for(".hgcwa_code_download", label=label, download_type='gap'))
-                             ]
-        else:
-            downloads = [('Magma code', None),
-                             (u'\u2003 All vectors', url_for(".hgcwa_code_download",  label=label, download_type='magma')),
-                             (u'\u2003 Up to braid equivalence', url_for(".hgcwa_code_download", label=label, download_type='braid_magma')),
-                             ('Gap code', None),
-                             (u'\u2003 All vectors', url_for(".hgcwa_code_download", label=label, download_type='gap')),
-                             (u'\u2003 Up to braid equivalence', url_for(".hgcwa_code_download", label=label, download_type='braid_gap'))
-                             ]
-            
-=======
                 ('Source of the data', url_for(".how_computed_page")),
                 ('Labeling convention', url_for(".labels_page"))]
 
         downloads = [('Download Magma code', url_for(".hgcwa_code_download",  label=label, download_type='magma')),
                      ('Download Gap code', url_for(".hgcwa_code_download", label=label, download_type='gap'))]
 
->>>>>>> 706fb7e5c3d680e359ae09890d055587e96c36b2
         return render_template("hgcwa-show-passport.html",
                                title=title, bread=bread, info=info,
                                properties2=prop2, friends=friends,
