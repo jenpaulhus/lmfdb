@@ -38,23 +38,36 @@ table,td {
     </table>
 
 
-<p> <h2> Conjugacy Class(es) of {{KNOWL('curve.highergenus.aut.refinedpassport',title='Refined Passports')}} </h2>
+<h2>{{KNOWL('curve.highergenus.aut.refinedpassport', title ='Refined Passport')}} in the Family </h2>
 
+{% if info.r == 0 %}
 <table>
   <tr>
-     <th>{{KNOWL('dq.curve.highergenus.aut.label',title='Refined Passport Label')}} </th>
-  <th>{{KNOWL('curve.highergenus.aut.conjugacyclasses',title="Lists of Conjugacy Classes")}}</th>
- 
-</tr>
-{% for itm in info.passport %}
-<tr>
-  <td class="center"><a href="{{itm[2]}}">{{itm[1]}}</td>
-  <td class="center">{{itm[0]}}</td>
-
-</tr>
-{% endfor %}
+    <th>{{KNOWL('dq.curve.highergenus.aut.label',title='Refined Passport Label')}} </th>
+  </tr>
+  {% for itm in info.passport %}
+  <tr>
+    <td class="center"><a href="{{itm[2]}}">{{itm[1]}}</td>
+  </tr>
+  {% endfor %}
 </table>
-</p>
+
+{% else %}
+<table>
+  <tr>
+    <th>{{KNOWL('dq.curve.highergenus.aut.label',title='Refined Passport Label')}} </th>
+    <th>{{KNOWL('curve.highergenus.aut.conjugacyclasses',title="Conjugacy Classes")}}</th>
+    
+  </tr>
+  {% for itm in info.passport %}
+  <tr>
+    <td class="center"><a href="{{itm[2]}}">{{itm[1]}}</td>
+    <td class="center">{{itm[0]}}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+{% endif %}
 
 
   
