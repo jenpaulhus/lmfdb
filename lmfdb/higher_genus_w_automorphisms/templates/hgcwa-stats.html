@@ -82,7 +82,203 @@ table.ntdata td {
 </div>
 {% endfor %}
 
-<br>
+<h2>Distinct families by genus and quotient genus</h2>
+<table class="ntdata">
+  <thead>
+    <tr class="space">
+      <th class="spaceleft">Quotient</th>
+      <th class="level" colspan="{{genus_detail | length}}">Genus</th>
+    </tr>
+    <tr class="space">
+      <th class="spaceleft">genus</th>
+      {% for i in range(0, genus_detail | length) %}
+      <th class="level">{{info.stats.genus.min + i}}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for i in range(0, 1 + ((info.stats.genus.min + (genus_detail | length)) / 2) | round(0, 'ceil') | int) %}
+    <tr>
+      <th class="left">{{i}}</th>
+      {% for j in range(0, genus_detail | length) %}
+      {% set genus = info.stats.genus.min + j %}
+      <td class="center">
+        {% if i > (genus / 2) | round(0, 'ceil') | int %}
+        -
+        {% else %}
+        {{info.stats.genus_g0_family_counts[genus | string + "/" + i | string] or "0"}}
+        {% endif %}
+      </td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>Distinct refined passports by genus and quotient genus</h2>
+<table class="ntdata">
+  <thead>
+    <tr class="space">
+      <th class="spaceleft">Quotient</th>
+      <th class="level" colspan="{{genus_detail | length}}">Genus</th>
+    </tr>
+    <tr class="space">
+      <th class="spaceleft">genus</th>
+      {% for i in range(0, genus_detail | length) %}
+      <th class="level">{{info.stats.genus.min + i}}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for i in range(0, 1 + ((info.stats.genus.min + (genus_detail | length)) / 2) | round(0, 'ceil') | int) %}
+    <tr>
+      <th class="left">{{i}}</th>
+      {% for j in range(0, genus_detail | length) %}
+      {% set genus = info.stats.genus.min + j %}
+      <td class="center">
+        {% if i > (genus / 2) | round(0, 'ceil') | int %}
+        -
+        {% else %}
+        {{info.stats.genus_g0_passport_counts[genus | string + "/" + i | string] or "0"}}
+        {% endif %}
+      </td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>Distinct generating vectors by genus and quotient genus</h2>
+<table class="ntdata">
+  <thead>
+    <tr class="space">
+      <th class="spaceleft">Quotient</th>
+      <th class="level" colspan="{{genus_detail | length}}">Genus</th>
+    </tr>
+    <tr class="space">
+      <th class="spaceleft">genus</th>
+      {% for i in range(0, genus_detail | length) %}
+      <th class="level">{{info.stats.genus.min + i}}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for i in range(0, 1 + ((info.stats.genus.min + (genus_detail | length)) / 2) | round(0, 'ceil') | int) %}
+    <tr>
+      <th class="left">{{i}}</th>
+      {% for j in range(0, genus_detail | length) %}
+      {% set genus = info.stats.genus.min + j %}
+      <td class="center">
+        {% if i > (genus / 2) | round(0, 'ceil') | int %}
+        -
+        {% else %}
+        {{info.stats.genus_g0_vector_counts[genus | string + "/" + i | string] or "0"}}
+        {% endif %}
+      </td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>Distinct groups by genus and quotient genus</h2>
+<table class="ntdata">
+  <thead>
+    <tr class="space">
+      <th class="spaceleft">Quotient</th>
+      <th class="level" colspan="{{genus_detail | length}}">Genus</th>
+    </tr>
+    <tr class="space">
+      <th class="spaceleft">genus</th>
+      {% for i in range(0, genus_detail | length) %}
+      <th class="level">{{info.stats.genus.min + i}}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for i in range(0, 1 + ((info.stats.genus.min + (genus_detail | length)) / 2) | round(0, 'ceil') | int) %}
+    <tr>
+      <th class="left">{{i}}</th>
+      {% for j in range(0, genus_detail | length) %}
+      {% set genus = info.stats.genus.min + j %}
+      <td class="center">
+        {% if i > (genus / 2) | round(0, 'ceil') | int %}
+        -
+        {% else %}
+        {{info.stats.genus_g0_group_counts[genus | string + "/" + i | string] or "0"}}
+        {% endif %}
+      </td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>Distinct topological orbits by genus and quotient genus</h2>
+<table class="ntdata">
+  <thead>
+    <tr class="space">
+      <th class="spaceleft">Quotient</th>
+      <th class="level" colspan="{{genus_detail | length}}">Genus</th>
+    </tr>
+    <tr class="space">
+      <th class="spaceleft">genus</th>
+      {% for i in range(0, genus_detail | length) %}
+      <th class="level">{{info.stats.genus.min + i}}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for i in range(0, 1 + ((info.stats.genus.min + (genus_detail | length)) / 2) | round(0, 'ceil') | int) %}
+    <tr>
+      <th class="left">{{i}}</th>
+      {% for j in range(0, genus_detail | length) %}
+      {% set genus = info.stats.genus.min + j %}
+      <td class="center">
+        {% if i > (genus / 2) | round(0, 'ceil') | int %}
+        -
+        {% else %}
+        {{info.stats.genus_g0_topological_counts[genus | string + "/" + i | string] or "0"}}
+        {% endif %}
+      </td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>Distinct braid orbits by genus and quotient genus</h2>
+<table class="ntdata">
+  <thead>
+    <tr class="space">
+      <th class="spaceleft">Quotient</th>
+      <th class="level" colspan="{{genus_detail | length}}">Genus</th>
+    </tr>
+    <tr class="space">
+      <th class="spaceleft">genus</th>
+      {% for i in range(0, genus_detail | length) %}
+      <th class="level">{{info.stats.genus.min + i}}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for i in range(0, 1 + ((info.stats.genus.min + (genus_detail | length)) / 2) | round(0, 'ceil') | int) %}
+    <tr>
+      <th class="left">{{i}}</th>
+      {% for j in range(0, genus_detail | length) %}
+      {% set genus = info.stats.genus.min + j %}
+      <td class="center">
+        {% if i > (genus / 2) | round(0, 'ceil') | int %}
+        -
+        {% else %}
+        {{info.stats.genus_g0_braid_counts[genus | string + "/" + i | string] or "0"}}
+        {% endif %}
+      </td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 
 
 <h2> Distribution by dimension </h2>

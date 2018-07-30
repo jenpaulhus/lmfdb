@@ -4,6 +4,7 @@
 
 import re
 from lmfdb.base import getDBConnection
+from pymongo import MongoClient
 from data_mgt.utilities.rewrite import (update_attribute_stats, update_joint_attribute_stats)
 
 
@@ -20,6 +21,37 @@ def update_unique_count(db, coll, attribute):
     doc = {'_id' : attribute, 'distinct':count}
     db[coll + '.stats'].replace_one({'_id':attribute}, doc, upsert=True)
 
+def update_triply_joint_unique_count(db, coll, primary_attribute, secondary_attribute, tertiary_attribute, prefix=None):
+    '''
+    For each distinct combination of primary_attribute and secondary_attribute in db[coll], the
+    function finds the number of distinct values of tertiary_attribute in db[coll] with those
+    primary_attribute and secondary_attribute values.
+    The function then adds an entry
+      {_id : prefix + primary_attribute/secondary_attribute/tertiary_attribute, distinct : counts}
+    to db[coll.stats], where counts is a dictionary with keys in the format x/y where x is the
+    value of the primary attribute and y is the value of the secondary attribute.
+    '''
+    pa = str(primary_attribute)
+    sa = str(secondary_attribute)
+    ta = str(tertiary_attribute)
+    unique_pa = db[coll].distinct(pa)
+    unique_pa.sort()
+    unique_counts = {}
+    for pvalue in unique_pa:
+        unique_sa = db[coll].find({pa:pvalue}).distinct(sa)
+        unique_sa.sort()
+        for svalue in unique_sa:
+            num_unique_ta = len(db[coll].find({pa:pvalue,sa:svalue}).distinct(ta))
+            key = '{}/{}'.format(pvalue, svalue)
+            unique_counts[key] = num_unique_ta
+    prefix = prefix or ''
+    doc_id = '{}{}/{}{}/{}'.format(prefix, pa, prefix, sa, ta)
+    doc = {
+        '_id' : doc_id,
+        'distinct' : unique_counts,
+    }
+    db[coll + '.stats'].replace_one({'_id':doc_id}, doc, upsert=True)
+
 def update_joint_unique_count(db, coll, primary_attribute, secondary_attribute, prefix=None):
     '''
     For each distinct primary_attribute in db[coll], the function finds the number
@@ -29,21 +61,13 @@ def update_joint_unique_count(db, coll, primary_attribute, secondary_attribute, 
     to db[coll.stats], where counts is a dictionary where the keys are possible values for
     primary_attribute which map to the number of distinct values for secondary_attribute.
     Note: due to limitations of MongoDB, the keys are string representations of the attributes.
-
     Required arguments:
-
         db: a mongo db to which the caller has write access
-
         coll: the name of an existing collection in db
-
         primary_attribute: a string holding the primary attribute
-
         secondary_attribute: a string holding the secondary attribute
-
     Optional arguments:
-
         prefix: string used to prefix document id
-
     For example:
     If [1,2] is the list of unique values for 'dim', and there are 5 unique values
     for 'total_label' across all entries with dim=1, and 7 unique values for
@@ -58,12 +82,10 @@ def update_joint_unique_count(db, coll, primary_attribute, secondary_attribute, 
     sa = str(secondary_attribute)
     unique_pa = db[coll].distinct(pa)
     unique_pa.sort()
-
     unique_counts = {}
     for attr in unique_pa:
         num_unique_sa = len(db[coll].find({pa:attr}).distinct(sa))
         unique_counts[str(attr)] = num_unique_sa
-
     attr_str = pa + '/' + sa
     doc_id = prefix + attr_str if prefix else attr_str
     doc = {
@@ -111,6 +133,30 @@ update_joint_unique_count(db, 'passports', 'genus', 'total_label', prefix='by')
 
 # Number of generating vectors per dimension
 update_joint_unique_count(db, 'passports', 'dim', 'total_label', prefix='by')
+
+########################################################
+# Collect joint statistics by genus and quotient genus #
+########################################################
+
+print("Collecting statistics on unique families, refined passports, and generating vectors per genus per quotient genus.")
+
+# distinct families
+update_triply_joint_unique_count(db, 'passports', 'genus', 'g0', 'label', prefix='by')
+
+# distinct refined passports
+update_triply_joint_unique_count(db, 'passports', 'genus', 'g0', 'passport_label', prefix='by')
+
+# distinct generating vectors
+update_triply_joint_unique_count(db, 'passports', 'genus', 'g0', 'total_label', prefix='by')
+
+# distinct topological orbits
+update_triply_joint_unique_count(db, 'passports', 'genus', 'g0', 'topological', prefix='by')
+
+# distinct braid orbits
+update_triply_joint_unique_count(db, 'passports', 'genus', 'g0', 'braid', prefix='by')
+
+# distinct groups
+update_triply_joint_unique_count(db, 'passports', 'genus', 'g0', 'group', prefix='by')
 
 
 #############################################

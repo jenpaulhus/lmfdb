@@ -58,6 +58,14 @@ class HGCWAstats(object):
         # Collect genus joint statistics #
         ##################################
 
+        # Collect stats by genus and quotient genus
+        stats['genus_g0_family_counts'] = db.find_one({'_id':'bygenus/byg0/label'})
+        stats['genus_g0_passport_counts'] = db.find_one({'_id':'bygenus/byg0/passport_label'})
+        stats['genus_g0_vector_counts'] = db.find_one({'_id':'bygenus/byg0/total_label'})
+        stats['genus_g0_topological_counts'] = db.find_one({'_id':'bygenus/byg0/topological'})
+        stats['genus_g0_braid_counts'] = db.find_one({'_id':'bygenus/byg0/braid'})
+        stats['genus_g0_group_counts'] = db.find_one({'_id':'bygenus/byg0/group'})
+
         # An iterable list of distinct curve genera
         genus_list = [ count[0] for count in stats['genus']['counts'] ]
         genus_list.sort()

@@ -409,6 +409,7 @@ def higher_genus_w_automorphisms_search(**args):
     try:
         parse_gap_id(info,query,'group','Group')
         parse_ints(info,query,'genus',name='Genus')
+        parse_ints(info,query,'g0',name='Quotient genus')
         parse_bracketed_posints(info,query,'signature',split=False,name='Signature',keepbrackets=True)
         if query.get('signature'):
             query['signature'] = info['signature'] = str(sort_sign(ast.literal_eval(query['signature']))).replace(' ','')
@@ -485,7 +486,7 @@ def render_family(args):
     info = {}
     if 'label' in args:
         label = clean_input(args['label'])
-        C = MongoClient(port=int(27017))
+        C = base.getDBConnection()
         dataz = C.curve_automorphisms.passports.find({'label': label})
  
         if dataz.count() is 0:
@@ -571,7 +572,7 @@ def render_passport(args):
     if 'passport_label' in args:
         label =clean_input(args['passport_label'])
 
-        C =  MongoClient(port=int(27017))
+        C = base.getDBConnection()
         dataz = C.curve_automorphisms.passports.find({'passport_label': label}).sort('cc.1', ASC)
         if dataz.count() is 0:
             bread = get_bread([("Search Error", url_for('.index'))])
