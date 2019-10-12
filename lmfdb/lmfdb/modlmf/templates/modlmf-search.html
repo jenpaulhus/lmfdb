@@ -1,0 +1,96 @@
+{% extends 'homepage.html' %}
+{% block content %}
+
+<h2> Further refine search </h2>
+<form id='re-search'>
+{% include 'hidden_search_inputs.html' %}
+<table border="0">
+
+<tr>
+<td align=left>{{ KNOWL('modlmf.characteristic', title='Field characteristic') }}</td>
+<td align=left>{{ KNOWL('modlmf.deg', title='Field degree') }}</td>
+<td align=left>{{ KNOWL('modlmf.level', title='Level') }}</td>
+</tr>
+
+
+<tr>
+<td align=left><input type='text' name='characteristic' value="{{info.characteristic}}" size=10></td>
+<td align=left><input type='text' name='deg' value="{{info.deg}}" size=10></td>
+<td align=left><input type='text' name='level' value="{{info.level}}" size=10></td>
+</tr>
+
+</tr>
+<td align=left>{{KNOWL('modlmf.weight_grading', title='Weight grading')}}</td>
+<td align=left>{{ KNOWL('modlmf.dirchar', title='Character label') }}</td>
+<td align=left>Group: <select name='group'>
+           <option value="gamma0" selected >Gamma_0</option>
+           <option value="gamma1">Gamma_1</option>
+         </select></td>
+</tr>
+
+<tr>
+<td align=left><input type='text' name='weight_grading' value="{{info.min_weight}}" size=10>
+<td align=left><input type='text' name='dirchar' value="{{info.dirchar}}" size=10>
+</table>
+
+
+<table id="a_n">
+<tr align=left><td>{{KNOWL('modlmf.q_expansion', title='Coefficient')}} of <i>q<sup>n</sup></i> for <i>n=</i><input type='text' name='index_coeff' size=5 value="{{info.index_coeff}}"> is <input type='text' name='req_coeff' size=5 value="{{info.req_coeff}}">
+</td><td><button type='button' id='more_modp_button'>more</button>
+</td></tr>
+<tr>
+<td class="button"><button type='submit' size=10  value='refine' onclick='resetStart()'>Search again</button>
+ </td>
+</tr>
+
+</table>
+
+</form>
+
+{% include 'matches.html' %}
+{% if info.number %}
+<table>
+  <tr>
+    <th>{{ KNOWL('modlmf.label', title='Label') }}</th>
+    <th>{{ KNOWL('modlmf.characteristic', title='Field characteristic') }}</th>
+    <th>{{ KNOWL('modlmf.degree', title='Field degree') }}</th>
+    <th>{{ KNOWL('modlmf.level', title='Level')}}</th>
+    <th>{{ KNOWL('modlmf.weight_grading', title='Weight grading') }}</th>
+  </tr>
+  {% for l in info.results %}
+  <tr>
+    <td align='left'><a href="{{url_for('modlmf.render_modlmf_webpage', label=l.label)}}">{{l.label}} </a></td>
+    <td>{{l.characteristic}}</td>
+    <td>{{l.deg}}</td>
+    <td>{{l.level}}</td>
+    <td>{{l.weight_grading}}</td>
+  </tr>
+  {% endfor %}
+</table>
+<hr>
+{% include 'forward_back.html' %}
+{% include 'download_search_results.html' %}
+{% endif %}
+{% include 'debug_info.hmlt' %}
+
+<script>
+//Try to get tbody first with jquery children. works faster!
+var tbody = $('#a_n').children('tbody');
+
+//Then if no tbody just select your table 
+var table = tbody.length ? tbody : $('#a_n');
+
+
+$('#more_modp_button').click(function(){
+    //Add row
+    table.append("<tr><td align='right'><i>n=</i><input type='text' name='index_coeff' size=5> is <input type='text' name='req_coeff' size=5></td><td><button type='button' value='Delete Row' onclick='deleteRow(this)'>less</button></td></tr>");
+    return false;
+})
+
+function deleteRow(btn) {
+  var row = btn.parentNode.parentNode;
+  row.parentNode.removeChild(row);
+}
+</script>
+
+{% endblock %}
