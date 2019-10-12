@@ -1,0 +1,72 @@
+{% extends "homepage.html" %}
+
+{% block content %}
+
+<p>
+The LMFDB consists of {{ info.ntables }} tables containing a total of {{info.nobjects}} objects.
+The total size is {{info.size}} MiB, of which {{info.dataSize}} MiB is data and {{info.indexSize}} MiB is indexes.
+</p>
+
+<form>
+<table>
+<tr>
+<td>
+Minimum size:&nbsp;
+<select name='minsize'>
+{% for s in info.minsizes %}
+  {% if s == info.minsize %} <option value="{{s}}" selected >{{s}} MiB</option> {% else %} <option value="{{s}}">{{s}} MiB</option>{% endif %}
+{% endfor %}
+</select>
+</td>
+<td>
+Group by:&nbsp;
+<select name='groupby'>
+<option></option>
+{% if info.groupby == 'db' %}<option value="db" selected>database</option> {% else %} <option value="db">database</option>{% endif %}
+</select>
+</td>
+<td>
+Sort by:&nbsp;
+<select name='sortby'>
+  <option value="size"{% if info.sortby == 'size' %} selected{% endif %}>size</option>
+  <option value="name"{% if info.sortby == 'name' %} selected{% endif %}>name</option>
+  <option value="objects"{% if info.sortby == 'objects' %} selected{% endif %}>objects</option>
+</select>
+</td>
+<td>
+<td><button type='submit' value='update'>Update</button></td>
+</td>
+</table>
+</form>
+
+<p>
+The table below lists all collections that are larger than {{info.minsize}} MiB, sorted by {{info.sortby}}.
+</p>
+
+<table id="stats" class="ntdata" cellspacing="0" width="100%">
+<thead>
+<tr>
+  <th>Table</th>
+  <th>Size (MiB)</th>
+  <th>Data (MiB)</th>
+  <th>Index (MiB)</th>
+  <th>Objects</th>
+  <th>Average Size (B)</th>
+</tr>
+</thead>
+
+<tbody>
+{% for x in info.stats: %}
+<tr>
+    <td>{{x.table|safe}}</td>
+    <td>{{x.size}}</td>
+    <td>{{x.dataSize}}</td>
+    <td>{{x.indexSize}}</td>
+    <td>{{x.nrows}}</td>
+    <td>{{x.avgObjSize}}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+{% endblock %}

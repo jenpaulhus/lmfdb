@@ -1,0 +1,41 @@
+{% extends 'homepage.html' %}
+{% block content %}
+
+<div>
+There exist {{ KNOWL("mf.maass.mwf",title="weight 0 Maass cusp forms")}} on
+Hecke congruence groups
+$\Gamma_0(N)$ with even character $\chi$. The L-function \(L(s,f) = \sum a_n n^{-s} \) associated to the Maass cusp form $f$ has an
+{{ KNOWL('lfunction.euler_product', title='Euler product')}}
+of the form
+\[
+   L(s,f)= \prod_{p\mid N}  \left(1 - a_p p^{-s} \right)^{-1}\prod_{p\nmid N}  \left(1 - a_p p^{-s} + \chi(p)p^{-2s} \right)^{-1}
+\]
+and satisfies a
+{{ KNOWL("lfunction.functional_equation",title="functional equation")}} of the form
+\[\begin{aligned}
+\Lambda(s,f) = N^{s/2} \Gamma_{\R}
+\left(s + \delta + iR \right) \Gamma_{\R}
+\left(s + \delta - iR \right) \cdot L(s, f) =
+\varepsilon \Lambda(1-s,f),
+\end{aligned}\]
+where $N$ is the {{ KNOWL("mf.maass.mwf.level",title="level")}},
+$R$ the {{ KNOWL("mf.maass.mwf.eigenvalue",title="eigenvalue")}} of the
+Maass cusp form, $\varepsilon$ is the {{ KNOWL('lfunction.sign', title='sign')}}, and $\delta$ is 1 (or 0) 
+when $f$ is odd (or even).
+</div>
+<br>
+<div>
+The dots in the plot correspond to L-functions with trivial character and
+$(R, N)$ as in the functional equation.
+The color shows whether the functional equation has <b><font color="{{colorplus1}}">sign&nbsp;+1</font></b>
+or
+<b><font color="{{colorminus1}}">sign&nbsp;-1</font></b>.
+These have been found by a computer search.
+Click on any of the dots for details about the L-function.
+</div>
+
+<br>
+
+{{gl2spectrum0[0]|safe}}
+
+{% endblock %}
