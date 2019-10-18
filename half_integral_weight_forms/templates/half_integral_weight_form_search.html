@@ -1,0 +1,31 @@
+{% extends 'homepage.html' %}
+{% block content %}
+
+{% include 'matches.html' %}
+{% if info.number %}
+<table class="ntdata">
+<tr>
+<th>Label</th>
+<th>Level</th>
+<th>Weigth</th>
+<th>Character</th>
+<th>Dimension</th>
+</tr>
+{% for form in info.results: %}
+<tr>
+<td align='left'><a href="{{url_for('hiwf.render_hiwf_webpage', label=form.label)}}">{{form.label}} </a></td>
+<td>${{form.level}}$</td>
+<td>${{form.weight}}/2$</td>
+<td><A HREF="Character/Dirichlet/{{form.ch_lab}}">${{form.char}}$</A></td>
+<td>${{form.dimension}}$</td>
+</tr>
+{% endfor %}
+
+</table>
+<hr>
+{% include 'forward_back.html' %}
+{% include 'dummy_download_search_results.html' %}
+{% endif %}
+{% include 'debug_info.html' %}
+
+{% endblock %}

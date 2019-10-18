@@ -1,0 +1,25 @@
+{% extends 'homepage.html' %}
+{% block content %}
+<p>
+Each 
+{{KNOWL('gg.galois_group', title="Galois group")}}
+is identified by a code "nTt" where \(n\) is
+its {{KNOWL('gg.degree',title='degree')}} and 
+\(t\) and its  {{KNOWL('gg.tnumber',title='T-number')}}.
+One may specify a group by this symbol.  
+</p>
+<p>
+For familiar groups one can use short names from the table below.
+An abstract group may have more than one
+representation as a Galois group.  Correspondingly, the familiar
+symbol for a group may represent several
+Galois groups.  These combinations for degree $\leq 11$ are shown
+below.
+</p>
+
+<p>
+{{ al | safe }}
+
+</p>
+
+{% endblock %}
