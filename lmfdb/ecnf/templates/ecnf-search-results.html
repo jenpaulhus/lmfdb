@@ -118,6 +118,7 @@
 {% include 'matches.html' %}
 {% if info.number %}
 <table cellpadding=3 class='ntdata'>
+<thead>
   <tr>
     <th>{{ KNOWL('ec.curve_label',title = "Label") }}</th>
     <th>{{ KNOWL('nf',title = "Base field") }}</th>
@@ -125,7 +126,8 @@
     <th>{{ KNOWL('ec.conductor_label',title = "Conductor label") }}</th>
     <th>{{ KNOWL('ec.isogeny_class',title = "Isogeny class")}}</th>
     <th>{{ KNOWL('ec.weierstrass_coeffs',  title='Weierstrass coefficients') }}</th>
-  </tr>
+</tr></thead>
+<tbody>
   {% for curve in info.results: %}
   <tr>
     <td align='left'><a href="{{ url_for('.show_ecnf',nf=curve.field_label,conductor_label=curve.conductor_label,class_label=curve.iso_label,number=curve.number) }} ">{{curve.short_label}}</a></td>
@@ -138,6 +140,7 @@
     <td align='left'><a href="{{ url_for('.show_ecnf',nf=curve.field_label,conductor_label=curve.conductor_label,class_label=curve.iso_label,number=curve.number) }} ">{{info.web_ainvs(curve.field_label,curve.ainvs)}}</a></td>
   </tr>
   {% endfor %}
+  </tbody>
 </table>
 <hr>
 {% include 'forward_back.html' %}

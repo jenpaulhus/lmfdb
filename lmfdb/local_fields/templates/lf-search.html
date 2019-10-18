@@ -52,7 +52,7 @@
 {% include 'matches.html' %}
 {% if info.number %}
 
-<table border=1 cellpadding=5 class="ntdata">
+<table cellpadding=3 class="ntdata">
 <thead>
 <tr>
 <th>Polynomial</th>
@@ -68,13 +68,13 @@
 
 {% for field in info.results: %}
 <tr>
-<td align='left'><a href="/LocalNumberField/{{field.label}}">{{info.display_poly(field.coeffs)|safe}}</a></td>
+<td align='right'><a href="/LocalNumberField/{{field.label}}">{{info.display_poly(field.coeffs)|safe}}</a></td>
 <td>{{field.p}}</td>
 <td>{{field.e}}</td>
 <td>{{field.f}}</td>
 <td>{{field.c}}</td>
 <td>{{info.group_display(field.n, field.gal)}}</td>
-<td>$ {{info.slopedisp(field.slopes, field.t, field.u)}}$</td>
+<td align='right'>$ {{info.slopedisp(field.slopes, field.t, field.u)}}$</td>
 </tr>
 
 {% endfor %}
