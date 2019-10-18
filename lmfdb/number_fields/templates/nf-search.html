@@ -72,7 +72,7 @@
 {% if info.err is defined %}
 {% if info.label is defined %}
 <form>
-<table border=0 cellpadding=3>
+<table border=0 cellpadding=5>
 <tr>
 <td>Field:&nbsp;&nbsp;</td>
 <td ><input type='text' name='natural' size=60 value="{{info.label}}"> </td>
@@ -89,7 +89,7 @@
 {% endif %}
 {% include 'matches.html' %}
 {% if info.number %}
-<table cellpadding=3 class="ntdata" id="fieldTab"`>
+<table border=1 cellpadding=5 class="ntdata" id="fieldTab"`>
 <thead>
 <tr>
 <th>{{KNOWL('nf.label', 'Label')}}</th>
@@ -104,8 +104,8 @@
 {% set wnf = info.wnf(field) %}
 <tr>
 <td align='left'><a href="/NumberField/{{field.label}}">{{field.label}}</a></td>
-<td align='right'>{{ wnf.web_poly() | safe }}</td>
-<td align='center'>\( {{ wnf.disc_factored_latex() }} \)</td>
+<td>{{ wnf.web_poly() | safe }}</td>
+<td>\( {{ wnf.disc_factored_latex() }} \)</td>
 <td>{{ wnf.galois_string() }}</td>
 {# {% if field.class_group is defined %} #}
 {% if wnf.haskey('class_group') %}

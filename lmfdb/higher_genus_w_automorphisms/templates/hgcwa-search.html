@@ -4,10 +4,10 @@
 
 {% include "hgcwa-clean-submit.html" %}
 
-
 <form id="re-search" onsubmit="cleanSubmitHGCWA(this.id)">
 {% include 'hidden_search_inputs.html' %}
 <table border="0">
+
 <tr>
   <td align=left>{{KNOWL('ag.curve.genus',title='Genus')}}</td>
   <td align=left><input type='text' name="genus" placeholder='3' size="14" value="{{info.genus}}"></td>
@@ -134,7 +134,7 @@
 {% include 'matches.html' %}
 {% if info.number %}
 
-<table cellpadding=3 class="ntdata">
+<table border=1 cellpadding=5 class="ntdata">
 <thead>
 <tr>
 
@@ -149,8 +149,6 @@
 <tbody>
 
 {% for field in info.results: %}
-
-
 <tr>
 
   <td align='left'><a href="/HigherGenus/C/Aut/{{field.passport_label}}">{{field.passport_label}}</a></td>
