@@ -621,6 +621,9 @@ hgcwa_columns.languages = ['gap', 'magma']
                'download': hgcwa_code_download_search },
     bread=lambda: get_bread("Search results"),
     learnmore=learnmore_list)
+
+
+
 def higher_genus_w_automorphisms_search(info, query):
     if info.get('signature'):
         # allow for ; in signature
