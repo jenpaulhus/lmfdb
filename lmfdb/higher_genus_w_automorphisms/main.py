@@ -11,13 +11,13 @@ import yaml
 
 from lmfdb.logger import make_logger
 from flask import render_template, request, url_for, redirect, send_file, abort
-from sage.all import Permutation
+from sage.all import Permutations
 
 from lmfdb import db
 from lmfdb.utils import (
     flash_error, to_dict,
     SearchArray, TextBox, ExcludeOnlyBox, CountBox,
-    parse_ints, clean_input, parse_bracketed_posints, parse_gap_id,
+    parse_ints, parse_list, clean_input, parse_bracketed_posints, parse_gap_id,
     search_wrap, redirect_no_cache)
 from lmfdb.utils.interesting import interesting_knowls
 from lmfdb.utils.search_parsing import (search_parser, collapse_ors)
@@ -161,6 +161,7 @@ def decjac_format(decjac_list):
     return latex, ccClasses
 
 # Turn 'i.j' in the total label in to cc displayed in mongo
+#JP unnecessary in REDO
 def cc_to_list(cc):
     l = cc.split('.')
     return [int(l[1]), int(l[-1])]
@@ -171,7 +172,7 @@ def index():
     info = to_dict(request.args, search_array=HGCWASearchArray())
     if request.args:
         return higher_genus_w_automorphisms_search(info)
-    genus_max = db.hgcwa_passports.max('genus')
+    genus_max = db.hgcwa_genvectors.max('genus')
     genus_list = list(range(2, genus_max + 1))
     info['count'] = 50
     info['genus_list'] = genus_list
@@ -187,14 +188,14 @@ def index():
 @higher_genus_w_automorphisms_page.route("/random")
 @redirect_no_cache
 def random_passport():
-    label = db.hgcwa_passports.random(projection='passport_label')
+    label = db.hgcwa_genvectors.random(projection='passport_label')
     return url_for(".by_passport_label", passport_label=label)
 
 @higher_genus_w_automorphisms_page.route("/interesting")
 def interesting():
     return interesting_knowls(
         "curve.highergenus.aut",
-        db.hgcwa_passports,
+        db.hgcwa_genvectors,
         url_for_label,
         label_col="label",
         title=r"Some interesting higher genus families",
@@ -211,20 +212,20 @@ def statistics():
 
 @higher_genus_w_automorphisms_page.route("/stats/groups_per_genus/<int:genus>")
 def groups_per_genus(genus):
-    un_grps = db.hgcwa_unique_groups
+    un_grps = db.hgcwa_per_groups_stats
     # Redirect to 404 if statistic is not found
     if not un_grps.count({'genus':genus}):
         return abort(404, 'Group statistics for curves of genus %s not found in database.' % genus)
 
     info = {}
-    gp_data = un_grps.search({'genus':genus},projection=['group','g0_is_gt0','g0_gt0_list','gen_vectors','topological','braid'],info=info)
+    gp_data = un_grps.search({'genus':genus},projection=['group','g0_is_gt0','g0_gt0_list','genvecs','topological','braid'],info=info)
 
     # Make list groups_0 where each entry is a list [ group, gen_vectors, tops, braids
     groups_0 = []
     # Make list groups_gt0 where each entry is a list [group, gen_vectors]
     groups_gt0 = []
 
-    complete_info = db.hgcwa_complete.lucky({'genus':genus})
+    complete_info = db.hgcwa_per_genus_stats.lucky({'genus':genus})
     show_top_braid = complete_info['top_braid_compute']
     show_g0_gt0 = complete_info['g0_gt0_compute']
 
@@ -233,11 +234,11 @@ def groups_per_genus(genus):
         group_str = str(dataz['group'])
         iso_class = sg_pretty("%s.%s" % tuple(group))
         if dataz['g0_is_gt0']:
-            groups_gt0.append((iso_class, group_str, dataz['gen_vectors'], cc_display(dataz['g0_gt0_list'])))
+            groups_gt0.append((iso_class, group_str, dataz['genvecs'], cc_display(dataz['g0_gt0_list'])))
         elif not show_top_braid:
-            groups_0.append((iso_class, group_str, dataz['gen_vectors']))
+            groups_0.append((iso_class, group_str, dataz['genvecs']))
         else:
-            groups_0.append((iso_class, group_str, dataz['gen_vectors'], dataz['topological'], dataz['braid']))
+            groups_0.append((iso_class, group_str, dataz['genvecs'], dataz['topological'], dataz['braid']))
 
     info = {
         'genus': genus,
@@ -431,7 +432,7 @@ def hgcwa_code_download_search(info):
     code += code_list['top_matter'][lang] + '\n' + '\n'
     code += "data:=[];" + '\n\n'
 
-    res = list(db.hgcwa_passports.search(ast.literal_eval(info["query"])))
+    res = list(db.hgcwa_genvectors.search(ast.literal_eval(info["query"])))
     # group results by label
     res_label = defaultdict(list)
     for row in res:
@@ -527,7 +528,7 @@ def parse_range2_extend(arg, key, parse_singleton=int, parse_endpoint=None, inst
     elif 'g' in arg: # linear function of variable g (ax+b)
         if GENUS_RE.match(arg):
             a = GENUS_RE.match(arg).groups()[0]
-            genus_list = db.hgcwa_passports.distinct('genus')
+            genus_list = db.hgcwa_genvectors.distinct('genus')
             genus_list.sort()
             min_genus = genus_list[0]
             max_genus = genus_list[-1]
@@ -595,6 +596,7 @@ def parse_group_order(inp, query, qfield, parse_singleton=int):
                     a linear function of variable g for genus (such as 84(g-1), 84g-84, 84g, or g-1), \
                     or a comma-separated list of these (such as 4,9,16 or 4-25, 81-121).")
 
+
 hgcwa_columns = SearchColumns([
     LinkCol("passport_label", "dq.curve.highergenus.aut.label", "Refined passport label",
             lambda label: f"/HigherGenus/C/Aut/{label}",
@@ -623,9 +625,11 @@ def higher_genus_w_automorphisms_search(info, query):
     if info.get('signature'):
         # allow for ; in signature
         info['signature'] = info['signature'].replace(';',',')
-        parse_bracketed_posints(info,query,'signature',split=False,name='Signature',keepbrackets=True, allow0=True)
+        #parse_bracketed_posints(info,query,'signature',split=False,name='Signature',keepbrackets=True, allow0=True)
         if query.get('signature'):
-            query['signature'] = info['signature'] = str(sort_sign(ast.literal_eval(query['signature']))).replace(' ','')
+            #query['signature'] = info['signature'] = str(sort_sign(ast.literal_eval(query['signature']))).replace(' ','')
+            #JP CHANGES HERE
+            parse_list(info,query,'signature')
     parse_gap_id(info,query,'group',qfield='group')
     parse_ints(info,query,'g0')
     parse_ints(info,query,'genus')
@@ -658,16 +662,16 @@ def render_family(args):
     info = {}
     if 'label' in args:
         label = clean_input(args['label'])
-        dataz = list(db.hgcwa_passports.search({'label':label}))
+        dataz = list(db.hgcwa_genvectors.search({'label':label}))
         if not dataz:
             flash_error("No family with label %s was found in the database.", label)
             return redirect(url_for(".index"))
         data = dataz[0]
         g = data['genus']
         g0 = data['g0']
-        GG = ast.literal_eval(data['group'])
-        gn = GG[0]
-        gt = GG[1]
+        GG = data['group'].split(".")
+        gn = int(GG[0])
+        gn = int(GG[0])
 
         gp_string = str(gn) + '.' + str(gt)
         pretty_group = sg_pretty(gp_string)
@@ -684,10 +688,10 @@ def render_family(args):
             ('Genus', r'\(%d\)' % g),
             ('Quotient genus', r'\(%d\)' % g0),
             ('Group', r'\(%s\)' % pretty_group),
-            ('Signature', r'\(%s\)' % sign_display(ast.literal_eval(data['signature'])))
+            ('Signature', r'\(%s\)' % sign_display(data['signature']))
         ]
         info.update({'genus': data['genus'],
-                    'sign': sign_display(ast.literal_eval(data['signature'])),
+                    'sign': sign_display(data['signature']),
                      'group': pretty_group,
                     'g0': data['g0'],
                     'dim': data['dim'],
@@ -713,7 +717,7 @@ def render_family(args):
             if 'topological' in dat:
                 if dat['topological'] == dat['cc']:
                     x1 = [] #A list of permutations of generating vectors of topo_rep
-                    for perm in dat['gen_vectors']:
+                    for perm in dat['genvecs']:
                         x1.append(sep.join(split_perm(Permutation(perm).cycle_string())))
                     Ltopo_rep.append([dat['total_label'],
                                       x1,
@@ -781,7 +785,7 @@ def render_passport(args):
     info = {}
     if 'passport_label' in args:
         label = clean_input(args['passport_label'])
-        dataz = list(db.hgcwa_passports.search({'passport_label': label}))
+        dataz = list(db.hgcwa_genvectors.search({'passport_label': label}))
         if not dataz:
             bread = get_bread([("Search Error", url_for('.index'))])
             flash_error("No refined passport with label %s was found in the database.", label)
@@ -789,9 +793,9 @@ def render_passport(args):
         data=dataz[0]
         g = data['genus']
         g0=data['g0']
-        GG = ast.literal_eval(data['group'])
-        gn = GG[0]
-        gt = GG[1]
+        GG = data['group'].split(".")
+        gn = int(GG[0])
+        gt = int(GG[1])
 
         gp_string=str(gn) + '.' + str(gt)
         pretty_group=sg_pretty(gp_string)
@@ -821,12 +825,12 @@ def render_passport(args):
             ('Genus', r'\(%d\)' % g),
             ('Quotient genus', r'\(%d\)' % g0),
             ('Group', r'\(%s\)' % pretty_group),
-            ('Signature', r'\(%s\)' % sign_display(ast.literal_eval(data['signature']))),
+            ('Signature', r'\(%s\)' % sign_display(data['signature'])),
             ('Generating Vectors', r'\(%d\)' % numb)
         ]
         info.update({'genus': data['genus'],
                     'cc': cc_display(data['con']),
-                    'sign': sign_display(ast.literal_eval(data['signature'])),
+                    'sign': sign_display(data['signature']),
                      'group': pretty_group,
                      'gpid': smallgroup,
                      'numb': numb,
@@ -859,12 +863,12 @@ def render_passport(args):
 
             x4 = []
             if dat['g0'] == 0:
-                for perm in dat['gen_vectors']:
+                for perm in dat['genvec']:
                     cycperm = Permutation(perm).cycle_string()
                     x4.append(sep.join(split_perm(cycperm)))
 
             elif dat['g0'] > 0:
-                for perm in dat['gen_vectors']:
+                for perm in dat['genvec']:
                     cycperm = Permutation(perm).cycle_string()
                     #if display_perm == '()':
                     if cycperm == '()':
@@ -881,7 +885,7 @@ def render_passport(args):
             braid_data = [entry for entry in dataz if entry['braid'] == entry['cc']]
             for dat in braid_data:
                 x5 = []
-                for perm in dat['gen_vectors']:
+                for perm in dat['genvec']:
                     x5.append(sep.join(split_perm(Permutation(perm).cycle_string())))
                 Lbraid.append([dat['total_label'], x5])
 
@@ -894,9 +898,6 @@ def render_passport(args):
 
         if 'eqn' in data:
             info.update({'eqns': data['eqn']})
-
-        if 'ndim' in data:
-            info.update({'Ndim': data['ndim']})
 
         other_data = False
 
@@ -933,7 +934,7 @@ def render_passport(args):
             full_gp_string = str(full_gn) + '.' + str(full_gt)
             full_pretty_group = sg_pretty(full_gp_string)
             info.update({'fullauto': full_pretty_group,
-                         'signH': sign_display(ast.literal_eval(data['signH'])),
+                         'signH': sign_display(data['signH']),
                          'higgenlabel': data['full_label']})
 
 
@@ -988,7 +989,7 @@ def topological_action(fam, cc):
         return redirect(url_for(".index"))
 
     try:
-        cc_list = cc_to_list(cc)
+        cc_list = cc
     except IndexError:
         flash_error("Invalid topological action label: %s", cc)
         return redirect(url_for(".index"))
@@ -996,7 +997,7 @@ def topological_action(fam, cc):
     representative = fam + '.' + cc[2:]
 
     # Get the equivalence class
-    topo_class = list(db.hgcwa_passports.search({'label': fam, 'topological': cc_list}))
+    topo_class = list(db.hgcwa_genvectors.search({'label': fam, 'topological': cc_list}))
     if not topo_class:
         flash_error("No orbit in family with label %s and topological action %s was found in the database.", fam, cc)
         return redirect(url_for(".index"))
@@ -1101,7 +1102,7 @@ code_list = yaml.load(open(os.path.join(_curdir, "code.yaml")), Loader=yaml.Full
 
 same_for_all = ['signature', 'genus']
 other_same_for_all = ['r', 'g0', 'dim', 'sym']
-depends_on_action = ['gen_vectors']
+depends_on_action = ['genvecs']
 
 
 Fullname = {'magma': 'Magma', 'gap': 'GAP'}
@@ -1142,18 +1143,18 @@ def hgcwa_code_download(**args):
     if label_is_one_vector(label):
         fam, cc_1, cc_2 = split_vector_label(label)
         cc_list = [int(cc_1), int(cc_2)]
-        search_data = list(db.hgcwa_passports.search({"label": fam}))
+        search_data = list(db.hgcwa_genvectors.search({"label": fam}))
         data = [entry for entry in search_data if entry['topological'] == cc_list]
 
     elif label_is_one_passport(label):
-        search_data = list(db.hgcwa_passports.search({"passport_label" : label}))
+        search_data = list(db.hgcwa_genvectors.search({"passport_label" : label}))
         if lang == args['download_type']:
             data = search_data
         else:
             data = [entry for entry in search_data if entry['braid'] == entry['cc']]
 
     elif label_is_one_family(label):
-        search_data = list(db.hgcwa_passports.search({"label" : label}))
+        search_data = list(db.hgcwa_genvectors.search({"label" : label}))
         if lang == args['download_type']:
             data = search_data
         else:
