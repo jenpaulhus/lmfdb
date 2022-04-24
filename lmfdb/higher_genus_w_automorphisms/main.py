@@ -596,6 +596,7 @@ def parse_group_order(inp, query, qfield, parse_singleton=int):
                     a linear function of variable g for genus (such as 84(g-1), 84g-84, 84g, or g-1), \
                     or a comma-separated list of these (such as 4,9,16 or 4-25, 81-121).")
 
+<<<<<<< Updated upstream
 
 hgcwa_columns = SearchColumns([
     LinkCol("passport_label", "dq.curve.highergenus.aut.label", "Refined passport label",
@@ -624,6 +625,21 @@ hgcwa_columns.languages = ['gap', 'magma']
 
 
 
+=======
+@search_wrap(template="hgcwa-search.html",
+        table=db.hgcwa_genvectors,
+        title='Family of higher genus curves with automorphisms search results',
+        err_title='Family of higher genus curves with automorphisms search input error',
+        per_page=50,
+        url_for_label=url_for_label,
+        random_projection="passport_label",
+        shortcuts={'jump': higher_genus_w_automorphisms_jump,
+            'download': hgcwa_code_download_search },
+             #JP CUT HERE
+       # cleaners={'signature': lambda field: ast.literal_eval(field['signature'])},
+        bread=lambda: get_bread("Search results"),
+        learnmore=learnmore_list)
+>>>>>>> Stashed changes
 def higher_genus_w_automorphisms_search(info, query):
     if info.get('signature'):
         # allow for ; in signature
