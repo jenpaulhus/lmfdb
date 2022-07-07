@@ -71,7 +71,8 @@ def gl2_subgroup_data(label):
     info += row_wrap('Level', data['level'])
     info += row_wrap('Index', data['index'])
     info += row_wrap('Genus', data['genus'])
-    def ratcusps(c,r):
+
+    def ratcusps(c, r):
         if not c:
             return ""
         if not r:
@@ -80,8 +81,7 @@ def gl2_subgroup_data(label):
             return " (all of which are rational)"
         if r == 1:
             return " (one of which is rational)"
-        else:
-            return " (of which %s are rational)" % r
+        return f" (of which {r} are rational)"
 
     info += row_wrap('Cusps', "%s%s" % (data['cusps'], ratcusps(data['cusps'],data['rational_cusps'])))
     info += row_wrap('Contains $-1$', "yes" if data['quadratic_twists'][0] == label else "no")
@@ -168,6 +168,32 @@ def latex_equation(ainvs):
                     '{:+}'.format(a6) if a6 else '',
                     r'\)'])
 
+def homogeneous_latex_equation(ainvs):
+    a1,a2,a3,a4,a6 = [int(a) for a in ainvs]
+    return ''.join([r'\(y^2z',
+                    '+xyz' if a1 else '',
+                    '+yz^2' if a3 else '',
+                    '=x^3',
+                    '+x^2z' if a2==1 else '-x^2z' if a2==-1 else '',
+                    '{:+}xz^2'.format(a4) if abs(a4)>1 else '+xz^2' if a4==1 else '-xz^2' if a4==-1 else '',
+                    '{:+}z^3'.format(a6) if abs(a6)>1 else '+z^3' if a6==1 else '-z^3' if a6==-1 else '',
+                    r'\)'])
+
+def short_latex_equation(ainvs):
+    a1,a2,a3,a4,a6 = [ZZ(a) for a in ainvs]
+    A = -27*a1**4 - 216*a1**2*a2 + 648*a1*a3 - 432*a2**2 + 1296*a4
+    B = 54*a1**6 + 648*a1**4*a2 - 1944*a1**3*a3 + 2592*a1**2*a2**2 - 3888*a1**2*a4 - 7776*a1*a2*a3 + 3456*a2**3 - 15552*a2*a4 + 11664*a3**2 + 46656*a6
+    for p in A.gcd(B).prime_divisors():
+        while A.valuation(p) >= 4 and B.valuation(p) >= 6:
+            A = A.divide_knowing_divisible_by(p**4)
+            B = B.divide_knowing_divisible_by(p**6)
+    return ''.join([r'\(y^2=x^3',
+                    '{:+}x'.format(A) if abs(A)>1 else '+x' if A==1 else '-x' if A==-1 else '',
+                    '{:+}'.format(B) if B else '',
+                    r'\)'])
+
+def latex_equations(ainvs):
+    return [latex_equation(ainvs),homogeneous_latex_equation(ainvs),short_latex_equation(ainvs)]
 
 class WebEC():
     """
@@ -192,14 +218,14 @@ class WebEC():
         """
         try:
             N, iso, number = split_lmfdb_label(label)
-            data = db.ec_curvedata.lucky({"lmfdb_label" : label})
+            data = db.ec_curvedata.lucky({"lmfdb_label": label})
             if not data:
                 return "Curve not found" # caller must catch this and raise an error
             data['label_type'] = 'LMFDB'
         except AttributeError:
             try:
                 N, iso, number = split_cremona_label(label)
-                data = db.ec_curvedata.lucky({"Clabel" : label})
+                data = db.ec_curvedata.lucky({"Clabel": label})
                 if not data:
                     return "Curve not found" # caller must catch this and raise an error
                 data['label_type'] = 'Cremona'
@@ -252,6 +278,7 @@ class WebEC():
 
         latexeqn = latex_equation(self.ainvs)
         data['equation'] = raw_typeset(unlatex(latexeqn), latexeqn)
+        data['equations'] = [raw_typeset(unlatex(latexeqn), latexeqn) for latexeqn in latex_equations(self.ainvs)]
 
         # minimal quadratic twist:
 
@@ -520,12 +547,16 @@ class WebEC():
         mwbsd['generators'] = [raw_typeset(weighted_proj_to_affine_point(P)) for P in mwbsd['gens']] if mwbsd['ngens'] else ''
         mwbsd['heights'] = [RR(h) for h in mwbsd['heights']]
 
+        # Mordell-Weil group
+        invs = [0 for a in range(self.rank)] + [n for n in self.torsion_structure]
+        mwbsd['mw_struct'] = "trivial" if len(invs) == 0 else r'\(' + r' \oplus '.join((r'\Z' if n == 0 else r'\Z/{%s}\Z' % n) for n in invs) + r'\)'
+
         # Torsion structure and generators:
         if mwbsd['torsion'] == 1:
             mwbsd['tor_struct'] = ''
             mwbsd['tor_gens'] = ''
         else:
-            mwbsd['tor_struct'] = r' \times '.join(r'\Z/{%s}\Z' % n for n in self.torsion_structure)
+            mwbsd['tor_struct'] = r' \oplus '.join(r'\Z/{%s}\Z' % n for n in self.torsion_structure)
             tor_gens_tmp = [weighted_proj_to_affine_point(P) for P in mwbsd['torsion_generators']]
             mwbsd['tor_gens'] = raw_typeset(', '.join(str(P) for P in tor_gens_tmp),
                 ', '.join(web_latex(P) for P in tor_gens_tmp))
@@ -626,7 +657,7 @@ class WebEC():
             if "missing" in tg1['f']:
                 tg['fields_missing'] = True
             T = tgd['torsion']
-            tg1['t'] = r'\(' + r' \times '.join(r'\Z/{}\Z'.format(n) for n in T) + r'\)'
+            tg1['t'] = r'\(' + r' \oplus '.join(r'\Z/{}\Z'.format(n) for n in T) + r'\)'
             bcc = next((lab for lab, pol in zip(bcs, bc_pols) if pol==F), None)
             if bcc:
                 from lmfdb.ecnf.main import split_full_label

@@ -44,11 +44,13 @@ def integer_divisors(n):
     """ returns sorted list of positive divisors of the integer n (uses factor rather than calling pari like sage 9.3+ does) """
     if not n:
         raise ValueError("n must be nonzero")
+
     def _divisors(a):
         if len(a) == 0:
             return [1]
         q = a[0]
-        return sum([[q[0]**e*n for n in _divisors(a[1:])] for e in range(0,q[1]+1)],[])
+        return sum([[q[0]**e*n for n in _divisors(a[1:])] for e in range(q[1]+1)],[])
+
     return sorted(_divisors(ZZ(n).factor()))
 
 def integer_prime_divisors(n):
@@ -422,7 +424,7 @@ def display_float(x, digits, method = "truncate",
             if len(s) < digits + 2: # 2 = '/' + '-'
                 return str(x)
         k = round_to_half_int(x)
-        if k == x :
+        if k == x:
             k2 = None
             try:
                 k2 = ZZ(2*x)
@@ -717,7 +719,7 @@ class Pagination():
 
     @cached_property
     def entries(self):
-        return self.source[self.start : self.start+self.per_page]
+        return self.source[self.start: self.start+self.per_page]
 
     @cached_property
     def has_next(self):

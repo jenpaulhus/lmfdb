@@ -244,9 +244,9 @@ def groups_per_genus(genus):
         'genus': genus,
         'groups_0': groups_0,
         'groups_gt0': groups_gt0,
-        'show_top_braid' : show_top_braid,
-        'show_g0_gt0' : show_g0_gt0,
-        'group_display' : group_display
+        'show_top_braid': show_top_braid,
+        'show_g0_gt0': show_g0_gt0,
+        'group_display': group_display
     }
 
     title = 'Families of higher genus curves with automorphisms: Genus %s group statistics' % genus
@@ -817,6 +817,7 @@ def render_passport(args):
 
         gp_string=str(gn) + '.' + str(gt)
         pretty_group=sg_pretty(gp_string)
+        info['cyclic'] = db.gps_small.lookup(gp_string,projection="cyclic")
 
         if gp_string == pretty_group:
             spname=False
@@ -1165,14 +1166,22 @@ def hgcwa_code_download(**args):
         data = [entry for entry in search_data if entry['topological'] == cc_list]
 
     elif label_is_one_passport(label):
+<<<<<<< HEAD
         search_data = list(db.hgcwa_genvectors.search({"passport_label" : label}))
+=======
+        search_data = list(db.hgcwa_passports.search({"passport_label": label}))
+>>>>>>> 1fc513d5012de84a3b000e7d13043a195ba8f709
         if lang == args['download_type']:
             data = search_data
         else:
             data = [entry for entry in search_data if entry['braid'] == entry['cc']]
 
     elif label_is_one_family(label):
+<<<<<<< HEAD
         search_data = list(db.hgcwa_genvectors.search({"label" : label}))
+=======
+        search_data = list(db.hgcwa_passports.search({"label": label}))
+>>>>>>> 1fc513d5012de84a3b000e7d13043a195ba8f709
         if lang == args['download_type']:
             data = search_data
         else:

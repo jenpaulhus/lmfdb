@@ -53,6 +53,7 @@ from .web_groups import (
     WebAbstractRationalCharacter,
     WebAbstractSubgroup,
     group_names_pretty,
+    primary_to_smith
 )
 from .stats import GroupStats
 
@@ -654,11 +655,19 @@ def by_abelian_label(label):
         )
         return redirect(url_for(".index"))
     primary = canonify_abelian_label(label)
-    dblabel = db.gps_groups.lucky(
-        {"abelian": True, "primary_abelian_invariants": primary}, "label"
-    )
+    # Avoid database error on a hopeless search
+    dblabel = None
+    if not [z for z in primary if z>2**31-1]:
+        dblabel = db.gps_groups.lucky(
+            {"abelian": True, "primary_abelian_invariants": primary}, "label"
+        )
     if dblabel is None:
-        return render_abstract_group("ab/" + label, data=primary)
+        snf = primary_to_smith(primary)
+        canonical_label = '.'.join([str(z) for z in snf])
+        if canonical_label != label:
+            return redirect(url_for(".by_abelian_label", label=canonical_label))
+        else:
+            return render_abstract_group("ab/" + canonical_label, data=primary)
     else:
         return redirect(url_for(".by_label", label=dblabel))
 
@@ -965,7 +974,7 @@ def subgroup_search(info, query={}):
     parse_bool(
         info, query, "hall", process=lambda x: ({"$gt": 1} if x else {"$lte": 1})
     )
-    parse_bool(info, query, "proper")
+    parse_bool(info, query, "nontrivproper", qfield="proper")
     parse_regex_restricted(info, query, "subgroup", regex=abstract_group_label_regex)
     parse_regex_restricted(info, query, "ambient", regex=abstract_group_label_regex)
     parse_regex_restricted(info, query, "quotient", regex=abstract_group_label_regex)
@@ -1195,6 +1204,7 @@ def shortsubinfo(ambient, short_label):
         return ""
     wsg = WebAbstractSubgroup(label)
     # helper function
+
     def subinfo_getsub(title, knowlid, lab):
         full_lab = "%s.%s" % (ambient, lab)
         h = WebAbstractSubgroup(full_lab)
@@ -1805,11 +1815,11 @@ class SubgroupSearchArray(SearchArray):
             knowl="group.order",
             example="128",
         )
-        proper = YesNoBox(name="proper", label="Proper", knowl="group.proper_subgroup")
+        nontrivproper = YesNoBox(name="nontrivproper", label=display_knowl('group.trivial_subgroup', 'Non-trivial') + " " + display_knowl('group.proper_subgroup', 'proper'))
 
         self.refine_array = [
             [subgroup, subgroup_order, cyclic, abelian, solvable],
-            [normal, characteristic, perfect, maximal, central, proper],
+            [normal, characteristic, perfect, maximal, central, nontrivproper],
             [ambient, ambient_order, direct, split, hall, sylow],
             [
                 quotient,
