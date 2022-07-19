@@ -1166,22 +1166,14 @@ def hgcwa_code_download(**args):
         data = [entry for entry in search_data if entry['topological'] == cc_list]
 
     elif label_is_one_passport(label):
-<<<<<<< HEAD
         search_data = list(db.hgcwa_genvectors.search({"passport_label" : label}))
-=======
-        search_data = list(db.hgcwa_passports.search({"passport_label": label}))
->>>>>>> 1fc513d5012de84a3b000e7d13043a195ba8f709
         if lang == args['download_type']:
             data = search_data
         else:
             data = [entry for entry in search_data if entry['braid'] == entry['cc']]
 
     elif label_is_one_family(label):
-<<<<<<< HEAD
         search_data = list(db.hgcwa_genvectors.search({"label" : label}))
-=======
-        search_data = list(db.hgcwa_passports.search({"label": label}))
->>>>>>> 1fc513d5012de84a3b000e7d13043a195ba8f709
         if lang == args['download_type']:
             data = search_data
         else:
