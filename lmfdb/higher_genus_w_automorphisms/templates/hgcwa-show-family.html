@@ -26,7 +26,7 @@
    {% if info.specialname %}
    <tr><td>{{KNOWL('group.small_group_label',title='Name')}}:</td> <td>${{info.group}}$</td></tr>
    {% endif %}
-     <tr><td>{{KNOWL('group.small_group_label',title='Identifier')}}:</td><td>${{info.gpid}}$</td></tr>
+     <tr><td>{{KNOWL('group.small_group_label',title='Identifier')}}:</td><td>{{info.gpid | safe}}</td></tr>
     </table>
 
 

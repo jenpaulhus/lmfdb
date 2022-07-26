@@ -3,6 +3,10 @@
 # Authors: Jen Paulhus, Lex Martin, David Neill Asanza, Nhi Ngo, Albert Ford
 # (initial code copied from John Jones Local Fields)
 
+
+## JP CHANGE 7 below
+
+
 import ast
 import os
 import re
@@ -27,6 +31,7 @@ from lmfdb.sato_tate_groups.main import sg_pretty
 from lmfdb.higher_genus_w_automorphisms import higher_genus_w_automorphisms_page
 from lmfdb.higher_genus_w_automorphisms.hgcwa_stats import HGCWAstats
 from collections import defaultdict
+from lmfdb.groups.abstract.main import abstract_group_display_knowl
 
 logger = make_logger("hgcwa")
 
@@ -102,6 +107,7 @@ def sign_display(L):
         signL = signL + str(L[sizeL-1]) + " ]"
     return signL
 
+#JP Probably will delete now that CC stored as strings?
 def cc_display(L):
     sizeL = len(L)
     if sizeL == 0:
@@ -218,7 +224,7 @@ def groups_per_genus(genus):
         return abort(404, 'Group statistics for curves of genus %s not found in database.' % genus)
 
     info = {}
-    gp_data = un_grps.search({'genus':genus},projection=['group','g0_is_gt0','g0_gt0_list','genvecs','topological','braid'],info=info)
+    gp_data = un_grps.search({'genus':genus},projection=['group','g0_is_gt0','g0_gt0_list','genvec','topological','braid'],info=info)
 
     # Make list groups_0 where each entry is a list [ group, gen_vectors, tops, braids
     groups_0 = []
@@ -234,11 +240,11 @@ def groups_per_genus(genus):
         group_str = str(dataz['group'])
         iso_class = sg_pretty("%s.%s" % tuple(group))
         if dataz['g0_is_gt0']:
-            groups_gt0.append((iso_class, group_str, dataz['genvecs'], cc_display(dataz['g0_gt0_list'])))
+            groups_gt0.append((iso_class, group_str, dataz['genvec'], cc_display(dataz['g0_gt0_list'])))
         elif not show_top_braid:
-            groups_0.append((iso_class, group_str, dataz['genvecs']))
+            groups_0.append((iso_class, group_str, dataz['genvec']))
         else:
-            groups_0.append((iso_class, group_str, dataz['genvecs'], dataz['topological'], dataz['braid']))
+            groups_0.append((iso_class, group_str, dataz['genvec'], dataz['topological'], dataz['braid']))
 
     info = {
         'genus': genus,
@@ -638,16 +644,16 @@ hgcwa_columns.languages = ['gap', 'magma']
         bread=lambda: get_bread("Search results"),
         learnmore=learnmore_list)
 
-
-def higher_genus_w_automorphisms_search(info, query):
+def higher_genus_w_automorphisms_search(info):
     if info.get('signature'):
         # allow for ; in signature
         info['signature'] = info['signature'].replace(';',',')
         #parse_bracketed_posints(info,query,'signature',split=False,name='Signature',keepbrackets=True, allow0=True)
         if query.get('signature'):
+            query['signature'] = info['signature'] = str(sort_sign((query['signature']))).replace(' ','')
             #query['signature'] = info['signature'] = str(sort_sign(ast.literal_eval(query['signature']))).replace(' ','')
             #JP CHANGES HERE
-            parse_list(info,query,'signature')
+            #parse_list(info,query,'signature')
     parse_gap_id(info,query,'group',qfield='group')
     parse_ints(info,query,'g0')
     parse_ints(info,query,'genus')
@@ -687,20 +693,22 @@ def render_family(args):
         data = dataz[0]
         g = data['genus']
         g0 = data['g0']
-        GG = data['group'].split(".")
-        gn = int(GG[0])
-        gn = int(GG[0])
-
-        gp_string = str(gn) + '.' + str(gt)
+        gp_string = data['group']
         pretty_group = sg_pretty(gp_string)
+        GG = data['group'].split(".")
+        gn = GG[0]
+        gt = GG[1]
+
+       # gp_string = str(gn) + '.' + str(gt)
+       # pretty_group = sg_pretty(gp_string)
 
         if gp_string == pretty_group:
             spname = False
         else:
             spname = True
         title = 'Family of genus ' + str(g) + ' curves with automorphism group $' + pretty_group +'$'
-        smallgroup="[" + str(gn) + "," +str(gt) + "]"
-
+        #smallgroup="[" + gn + "," + gt + "]"
+        smallgroup=abstract_group_display_knowl(data['group'],data['group'])
         prop2 = [
             ('Label', label),
             ('Genus', r'\(%d\)' % g),
@@ -725,18 +733,29 @@ def render_family(args):
         Lall=[]
         Ltopo_rep=[] #List of topological representatives
         for dat in dataz:
-            if ast.literal_eval(dat['con']) not in Lcc:
+           # if ast.literal_eval(dat['con']) not in Lcc:
+            #    urlstrng = dat['passport_label']
+             #   Lcc.append(ast.literal_eval(dat['con']))
+              #  Lall.append([cc_display(ast.literal_eval(dat['con'])),dat['passport_label'],
+               #              urlstrng,dat['cc']])
+
+            if dat['con'] not in Lcc:
                 urlstrng = dat['passport_label']
-                Lcc.append(ast.literal_eval(dat['con']))
-                Lall.append([cc_display(ast.literal_eval(dat['con'])),dat['passport_label'],
+                Lcc.append(dat['con'])
+                Lall.append([' '.join(dat['con']),dat['passport_label'],
                              urlstrng,dat['cc']])
 
+                #Lall.append([cc_display(dat['con']),dat['passport_label'],
+                #   urlstrng,dat['cc']])
+
+            
             #Topological equivalence
             if 'topological' in dat:
                 if dat['topological'] == dat['cc']:
                     x1 = [] #A list of permutations of generating vectors of topo_rep
-                    for perm in dat['genvecs']:
-                        x1.append(sep.join(split_perm(Permutation(perm).cycle_string())))
+                    for perm in dat['genvec']:
+                        x1.append(Permutations(dat['min_deg']).unrank(perm).cycle_string())
+                        #x1.append(sep.join(split_perm(Permutation(perm).cycle_string())))
                     Ltopo_rep.append([dat['total_label'],
                                       x1,
                                       dat['label'],
@@ -848,7 +867,9 @@ def render_passport(args):
             ('Generating Vectors', r'\(%d\)' % numb)
         ]
         info.update({'genus': data['genus'],
-                    'cc': cc_display(data['con']),
+                    'cc': data['con'],
+                    #do i need this???
+                     #   'cc': cc_display(data['con']),
                     'sign': sign_display(data['signature']),
                      'group': pretty_group,
                      'gpid': smallgroup,
@@ -883,12 +904,15 @@ def render_passport(args):
             x4 = []
             if dat['g0'] == 0:
                 for perm in dat['genvec']:
-                    cycperm = Permutation(perm).cycle_string()
+                    cycperm = Permutations(dat['min_deg']).unrank(perm).cycle_string()
+                    #JP CHANGE 7 ABOVE BUT NEED TO FIND WHERE
                     x4.append(sep.join(split_perm(cycperm)))
 
             elif dat['g0'] > 0:
                 for perm in dat['genvec']:
-                    cycperm = Permutation(perm).cycle_string()
+                    cycperm = Permutations(dat['min_deg']).unrank(perm).cycle_string()
+                    #JP CHANGE 7
+                    #cycperm = Permutation(perm).cycle_string()
                     #if display_perm == '()':
                     if cycperm == '()':
                         x4.append('Id(G)')
@@ -896,8 +920,11 @@ def render_passport(args):
                         x4.append(sep.join(split_perm(cycperm)))
             Ldata.append([x1, x2, x3, x4])
 
+        #info.update({'genvects': Ldata, 'HypColumn': HypColumn})
         info.update({'genvects': Ldata, 'HypColumn': HypColumn})
-        info.update({'passport_cc': cc_display(ast.literal_eval(data['con']))})
+        info.update({'passport_cc': ' '.join(data['con'])})
+
+    #    info.update({'passport_cc': cc_display(ast.literal_eval(data['con']))})
 
         #Generate braid representatives
         if 'braid' in dataz[0]:
@@ -905,7 +932,8 @@ def render_passport(args):
             for dat in braid_data:
                 x5 = []
                 for perm in dat['genvec']:
-                    x5.append(sep.join(split_perm(Permutation(perm).cycle_string())))
+                    x5.append(Permutations(dat['min_deg']).unrank(perm).cycle_string())
+#                    x5.append(sep.join(split_perm(Permutation(perm).cycle_string())))
                 Lbraid.append([dat['total_label'], x5])
 
         braid_length = len(Lbraid)
@@ -925,7 +953,9 @@ def render_passport(args):
             other_data = True
 
         if 'hyp_involution' in data:
-            inv=Permutation(data['hyp_involution']).cycle_string()
+            #inv=Permutations(data['hyp_involution']).cycle_string()
+            #JP CHANGE 7
+            inv=Permutations(dat['min_deg']).unrank(data['hyp_involution']).cycle_string()
             info.update({'hypinv': sep.join(split_perm(inv))})
 
 
@@ -939,14 +969,15 @@ def render_passport(args):
 
 
         if 'cinv' in data:
-            cinv=Permutation(data['cinv']).cycle_string()
+#            cinv=Permutation(data['cinv']).cycle_string()
+            cinv=Permutations(dat['min_deg']).unrank(data['cinv']).cycle_string()
             info.update({'cinv': sep.join(split_perm(cinv))})
 
         info.update({'other_data': other_data})
 
 
         if 'full_auto' in data:
-            full_G = ast.literal_eval(data['full_auto'])
+            full_G = data['full_auto'].split(".")
             full_gn = full_G[0]
             full_gt = full_G[1]
 
@@ -1058,8 +1089,10 @@ def topological_action(fam, cc):
             Lbraid[str(element['braid'])] = [
                 (element['passport_label'],
                  element['total_label'],
-                 cc_display(ast.literal_eval(element['con'])))]
-
+                 cc_display(element['con']))]
+                 #cc_display(ast.literal_eval(element['con'])))]
+                 
+                 
     # Sort braid ascending
     key_for_sorted = sorted(ast.literal_eval(key) for key in Lbraid)
     sorted_braid = [Lbraid[str(key)] for key in key_for_sorted]
@@ -1121,7 +1154,7 @@ code_list = yaml.load(open(os.path.join(_curdir, "code.yaml")), Loader=yaml.Full
 
 same_for_all = ['signature', 'genus']
 other_same_for_all = ['r', 'g0', 'dim', 'sym']
-depends_on_action = ['genvecs']
+depends_on_action = ['genvec']
 
 
 Fullname = {'magma': 'Magma', 'gap': 'GAP'}
