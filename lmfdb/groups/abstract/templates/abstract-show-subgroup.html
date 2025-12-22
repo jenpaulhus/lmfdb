@@ -163,7 +163,11 @@
       {{seq.sub.show_aut_group()|safe}}
       </td></tr>
     {% if seq.aut_weyl_group is not none %}
-      <tr><td>$\operatorname{res}({{S}})$</td><td><a href="{{url_for('.by_label', label=seq.aut_weyl_group)}}">${{seq.aut_weyl.tex_name}}$</a>, of order {{info.pos_int_and_factor(seq.aut_weyl.order) | safe}}</td></tr>
+    {% if seq.aut_weyl_valid %}
+    <tr><td>$\operatorname{res}({{S}})$</td><td><a href="{{url_for('.by_label', label=seq.aut_weyl_group)}}">${{seq.aut_weyl.tex_name}}$</a>, of order {{info.pos_int_and_factor(seq.aut_weyl.order) | safe}}</td></tr>
+    {% else %}
+    <tr><td>$\operatorname{res}({{S}})$</td><td> A group of order {{seq.aut_weyl_order}} </td></tr>
+    {% endif %}
     {% elif seq.aut_weyl_index is not none %}
       <tr><td>$\card{\operatorname{res}({{S}})}$</td><td>{{info.pos_int_and_factor(seq.amb.aut_order/seq.aut_weyl_index) | safe}}</td></tr>
     {% endif %}

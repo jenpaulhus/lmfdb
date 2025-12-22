@@ -2016,6 +2016,12 @@ def render_abstract_subgroup(label):
             title = r"Non-normal subgroup of $%s$"
         title = title % (seq.ambient_tex)
 
+    if seq.aut_weyl.source == "Missing":
+        seq.aut_weyl_valid = False
+        seq.aut_weyl_order = seq.aut_weyl_group.split(".")[0]   #JP 
+    else:
+        seq.aut_weyl_valid = True
+
     properties = [
         ("Label", label),
         ("Order", factor_latex(seq.subgroup_order)),
