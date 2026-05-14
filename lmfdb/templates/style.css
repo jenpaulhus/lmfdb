@@ -1804,6 +1804,33 @@ body.beta #sidebar table.short:nth-of-type(3) .rotation p.rotation {
     padding-left: 10px;
 }
 
+/* Sidebar dropdown menu styles */
+.sidebar-dropdown-toggle {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+.dropdown-arrow {
+    font-weight: bold;
+    display: inline-block;
+    width: 15px;
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+
+.sidebar-dropdown {
+    margin-top: 5px;
+    padding-left: 10px;
+    border-left: 2px solid {{color.sidebar_text}};
+}
+
+.sidebar-dropdown .subtitle {
+    display: block;
+    margin: 3px 0;
+}
+
 /*End of Sidebar style*/
 
 

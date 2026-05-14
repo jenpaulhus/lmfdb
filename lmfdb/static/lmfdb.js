@@ -66,6 +66,25 @@ function properties_collapser(evt) {
 $(function() {
  /* properties box collapsable click handlers */
  $(".properties-header,#properties-collapser").click(function(evt) { properties_collapser(evt); });
+
+ /* sidebar dropdown toggle handlers */
+ $(".sidebar-dropdown-toggle").click(function(evt) {
+   evt.preventDefault();
+   var $toggle = $(this);
+   var $dropdown = $toggle.closest("td").find(".sidebar-dropdown");
+   var $arrow = $toggle.find(".dropdown-arrow");
+
+   $dropdown.slideToggle(200, function() {
+     if ($dropdown.is(":visible")) {
+       $arrow.text("v");
+     } else {
+       $arrow.text(">");
+     }
+   });
+ });
+
+ /* make dropdown toggles look like buttons */
+ $(".sidebar-dropdown-toggle").css("cursor", "pointer");
 });
 
 
